@@ -102,13 +102,10 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		}
 
 		@Override
-		public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-			System.out.println("C");
-		}
+		public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {}
 
 		@Override
 		public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-			System.out.println("S");
 			for (X509Certificate certificate : chain) {
 				if (certificate.getIssuerDN().equals(certificate.getSubjectDN())) {
 					root = certificate;
@@ -331,12 +328,8 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		this.allowInvalidCerts = Boolean.getBoolean(getFromMap(params, ALLOW_INVALID_CERTS_KEY, ALLOW_INVALID_CERTS_VAL));
 		this.domainKeysPath = getFromMap(params, SERVER_CERTS_DIR_KEY, SERVER_CERTS_DIR_VAL);
 		this.privateKeyPassphrase = getFromMap(params, PEM_PRIVATE_PWD_KEY, PEM_PRIVATE_PWD_VAL);
-		System.out.println(params.get("ALLOW_SELF_SIGNED_CERTS_KEY"));
-		System.out.println(">" + getFromMap(params, ALLOW_SELF_SIGNED_CERTS_KEY, ALLOW_SELF_SIGNED_CERTS_VAL) + "<");
-
 		this.allowSelfSignedCerts = "true".equals(getFromMap(params, ALLOW_SELF_SIGNED_CERTS_KEY,
 				ALLOW_SELF_SIGNED_CERTS_VAL));
-		System.out.println(this.allowSelfSignedCerts);
 
 		try {
 			init();
