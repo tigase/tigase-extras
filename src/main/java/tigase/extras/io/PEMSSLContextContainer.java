@@ -155,7 +155,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		p.put(PEMSSLContextContainer.ALLOW_SELF_SIGNED_CERTS_KEY, "true");
 		x.init(p);
 
-		SSLContext ctx = x.getSSLContext("malkowscy.net");
+		SSLContext ctx = x.getSSLContext("tls", "malkowscy.net");
 		Socket socket = ctx.getSocketFactory().createSocket("jabber.wp.pl", 443);
 
 		try {
@@ -226,7 +226,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 	 */
 	private String privateKeyPassphrase = "";
 
-	private String protocol = "ssl";
+	//	private String protocol = "ssl";
 
 	private Map<String, SSLContext> sslContexts = new HashMap<String, SSLContext>();
 
@@ -255,7 +255,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 
 	/** {@inheritDoc} */
 	@Override
-	public SSLContext getSSLContext(String hostname) {
+	public SSLContext getSSLContext(String protocol, String hostname) {
 		try {
 			String map_key = hostname + ":" + protocol;
 			SSLContext sslContext = sslContexts.get(map_key);
