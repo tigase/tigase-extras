@@ -273,7 +273,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 				log.fine("Creating SSLConext for " + protocol + ":" + hostname + " with "
 						+ (allowInvalidCerts ? "trust everyone option." : "CA certs based trust model."));
 
-				String path = new File(domainKeysPath).getAbsoluteFile() + "/" + hostname + ".pem";
+				String path = new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".pem";
 				KeyStore keyStore = loadFromPEMFile(path, hostname, privateKeyPassphrase);
 				KeyManagerFactory kmf = KeyManagerFactory.getInstance(KEY_MANAGER_ALGORITHM);
 				kmf.init(keyStore, privateKeyPassphrase.toCharArray());
@@ -354,7 +354,9 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 			}
 		};
 		try {
-			log.info("Reading private key & certificate chain from file " + fileName);
+			log.info("Reading private key & certificate chain from file: '" + fileName
+				+ "', alias: '" + alias
+				+ "', password: '" + privateKeyPassphrase + "'");
 			List<Certificate> certs = new ArrayList<Certificate>();
 			Key key = null;
 			reader = new PEMReader(new FileReader(fileName), x);
