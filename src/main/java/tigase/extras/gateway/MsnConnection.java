@@ -18,9 +18,7 @@
  * Last modified by $Author$
  * $Date$
  */
-package tigase.server.gateways;
-
-
+package tigase.extras.gateway;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -54,6 +52,12 @@ import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xml.XMLUtils;
 
+import tigase.server.gateways.GatewayConnection;
+import tigase.server.gateways.GatewayListener;
+import tigase.server.gateways.GatewayException;
+import tigase.server.gateways.RosterItem;
+import tigase.server.gateways.UserStatus;
+
 /**
  * Describe class MsnConnection here.
  *
@@ -71,7 +75,7 @@ public class MsnConnection
    * Private logger for class instancess.
    */
   private static Logger log =
-		Logger.getLogger("tigase.server.gateways.MsnConnection");
+		Logger.getLogger("tigase.extras.gateway.MsnConnection");
 
 	private String username = null;
 	private String password = null;
@@ -103,6 +107,10 @@ public class MsnConnection
 	public void removeJid(String jid) {
 		xmpp_jids.remove(jid);
 		log.finest("JID removed: " + jid);
+	}
+
+	public String[] getAllJids() {
+		return xmpp_jids.toArray(new String[xmpp_jids.size()]);
 	}
 
 	public void setGatewayListener(GatewayListener listener) {
@@ -249,9 +257,7 @@ public class MsnConnection
 	 * @param msnMessenger a <code>MsnMessenger</code> value
 	 */
 	public void logout(final MsnMessenger msnMessenger) {
-		List<RosterItem> roster = getRoster(msnMessenger, MsnUserStatus.OFFLINE);
-		listener.logout(active_jid);
-		listener.userRoster(active_jid, roster);
+		listener.logout(this);
 		log.finest(active_jid + " logout called.");
 	}
 
@@ -261,7 +267,7 @@ public class MsnConnection
 	 * @param msnMessenger a <code>MsnMessenger</code> value
 	 */
 	public void loginCompleted(final MsnMessenger msnMessenger) {
-		listener.loginCompleted(active_jid);
+		listener.loginCompleted(this);
 		log.finest(active_jid + " logout completed.");
 		MsnOwner owner = msnMessenger.getOwner();
 		log.fine("Owner initstatus: " + owner.getInitStatus().getDisplayStatus());
@@ -282,7 +288,7 @@ public class MsnConnection
 	 */
 	public void exceptionCaught(final MsnMessenger msnMessenger,
 		final Throwable throwable) {
-		listener.gatewayException(active_jid, throwable);
+		listener.gatewayException(this, throwable);
 	}
 
 
@@ -295,7 +301,7 @@ public class MsnConnection
 	 */
 	public void contactListSyncCompleted(final MsnMessenger msnMessenger) {
 		log.finest(active_jid + " contactListSyncCompleted completed.");
-		listener.userRoster(active_jid, getRoster(msnMessenger, null));
+		listener.userRoster(this);
 // 		MsnContact[] list = msnMessenger.getContactList().getContacts();
 // 		if (list != null) {
 // 			Queue<Packet> buddy_presences = new LinkedList<Packet>();
@@ -342,6 +348,10 @@ public class MsnConnection
 // 				listener.packetReceived(pack);
 // 			}
 // 		}
+	}
+
+	public List<RosterItem> getRoster() {
+		return getRoster(messenger, null);
 	}
 
 	private List<RosterItem> getRoster(final MsnMessenger msnMessenger,
@@ -419,7 +429,7 @@ public class MsnConnection
 	public void contactListInitCompleted(final MsnMessenger msnMessenger) {
 		log.finest(active_jid + " contactListInitCompleted completed.");
 
-		listener.userRoster(active_jid, getRoster(msnMessenger, null));
+		listener.userRoster(this);
 	}
 
 	/**
@@ -465,7 +475,7 @@ public class MsnConnection
 				item.setGroups(grps);
 			}
 
-			listener.updateStatus(active_jid, item);
+			listener.updateStatus(this, item);
 		}
 			if (msnContact.isInList(MsnList.AL)) {
 				log.fine("Contact " + msnContact.getEmail().getEmailAddress()
@@ -573,7 +583,7 @@ public class MsnConnection
 			}
 			item.setGroups(grps);
 		}
-		listener.updateStatus(active_jid, item);
+		listener.updateStatus(this, item);
 		log.finest(active_jid + " contactAddCompleted completed.");
 	}
 
