@@ -48,7 +48,6 @@ import net.sf.jml.message.MsnSystemMessage;
 import net.sf.jml.message.MsnUnknownMessage;
 import net.sf.jml.message.p2p.MsnP2PMessage;
 import tigase.server.Packet;
-import tigase.util.JIDUtils;
 import tigase.xml.Element;
 import tigase.xml.XMLUtils;
 
@@ -83,7 +82,7 @@ public class MsnConnection
 	private GatewayListener listener = null;
 	private Set<String> xmpp_jids = new HashSet<String>();
 	private String active_jid = null;
-	private String gatewayDomain = null;
+// 	private String gatewayDomain = null;
 
 	// Implementation of tigase.server.gateways.GatewayConnection
 
@@ -93,10 +92,10 @@ public class MsnConnection
 		log.finest("Username, password set: (" + username + "," + password + ")");
 	}
 
-	public void setGatewayDomain(String domain) {
-		this.gatewayDomain = domain;
-		log.finest("gatewayDomain set: " + domain);
-	}
+// 	public void setGatewayDomain(String domain) {
+// 		this.gatewayDomain = domain;
+// 		log.finest("gatewayDomain set: " + domain);
+// 	}
 
 	public void addJid(String jid) {
 		xmpp_jids.add(jid);
@@ -138,8 +137,7 @@ public class MsnConnection
 	}
 
 	public void sendMessage(Packet packet) {
-		String address =
-			JIDUtils.getNodeNick(packet.getElemTo()).replace("%", "@");
+		String address = listener.decodeLegacyName(packet.getElemTo());
 		active_jid = packet.getElemFrom();
 		if (packet.getElemName().equals("message")) {
 			log.finest("Sending message: " + packet.toString());
