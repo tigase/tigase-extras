@@ -8,7 +8,7 @@
   <url>http://www.tigase.org/</url>
   <issueManagement>
     <system>Trac</system>
-    <url>http://server.tigase.org/</url>
+    <url>http://projects.tigase.org/server</url>
   </issueManagement>
   <developers>
     <developer>
@@ -130,12 +130,12 @@
     <repository>
       <id>tigase</id>
       <name>Tigase Repo</name>
-      <url>scpexe://tigase.org:/home/webapp/root/public_html/htdocs/drupal/files/maven-repository</url>
+      <url>scpexe://maven.tigase.org:/home/webapp/maven-repository</url>
     </repository>
     <snapshotRepository>
       <id>tigase</id>
       <name>Tigase Repo</name>
-      <url>scpexe://tigase.org:/home/webapp/root/public_html/htdocs/drupal/files/maven-repository</url>
+      <url>scpexe://maven.tigase.org:/home/webapp/maven-repository</url>
     </snapshotRepository>
   </distributionManagement>
 </project>
