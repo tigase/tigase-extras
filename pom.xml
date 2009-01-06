@@ -3,7 +3,7 @@
   <groupId>tigase</groupId>
   <artifactId>tigase-extras</artifactId>
   <name>Tigase Server Extras</name>
-  <version>0.2.0-SNAPSHOT</version>
+  <version>0.3.0-SNAPSHOT</version>
   <description>Extra modules to Tigase Server.</description>
   <url>http://www.tigase.org/</url>
   <issueManagement>
