@@ -9,7 +9,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.net.URLEncoder;
 import java.security.InvalidAlgorithmParameterException;
@@ -20,21 +19,12 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Security;
-import java.security.KeyStore.LoadStoreParameter;
 import java.security.cert.CertPath;
-import java.security.cert.CertPathParameters;
 import java.security.cert.CertPathValidator;
-import java.security.cert.CertSelector;
-import java.security.cert.CertStore;
-import java.security.cert.CertStoreParameters;
-import java.security.cert.CertStoreSpi;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.security.cert.CollectionCertStoreParameters;
 import java.security.cert.PKIXBuilderParameters;
-import java.security.cert.PKIXCertPathChecker;
-import java.security.cert.PKIXParameters;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -47,18 +37,15 @@ import java.util.logging.Logger;
 
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jce.provider.CertStoreCollectionSpi;
 import org.bouncycastle.openssl.PEMReader;
 import org.bouncycastle.openssl.PasswordFinder;
 
-import sun.security.tools.KeyStoreUtil;
 import tigase.io.SSLContextContainerIfc;
 
 public class PEMSSLContextContainer implements SSLContextContainerIfc {
@@ -256,6 +243,9 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 	/** {@inheritDoc} */
 	@Override
 	public SSLContext getSSLContext(String protocol, String hostname) {
+		if (hostname == null) {
+			hostname = "default";
+		}
 		try {
 			String map_key = hostname + ":" + protocol;
 			SSLContext sslContext = sslContexts.get(map_key);
