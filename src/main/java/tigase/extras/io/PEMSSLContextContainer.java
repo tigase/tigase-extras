@@ -125,14 +125,6 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		all, selfsigned, trusted
 	}
 
-	private static final String DEFAULT_DOMAIN_NAME_KEY = "default-domain";
-
-	private static final String DEFAULT_DOMAIN_NAME_VAL = "default";
-
-	private static final String KEY_CERT_IN_ONE_FILE_KEY = "key-cert-in-one-file";
-
-	private static final String KEY_CERT_IN_ONE_FILE_VAL = "true";
-
 	private final static String KEY_MANAGER_ALGORITHM = "SunX509";
 
 	private final static String KEY_STORE_ALGORITHM = "JKS";
@@ -188,8 +180,6 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		}
 
 	}
-
-	private boolean allInOneFile = true;
 
 	/**
 	 * Path to directory with CA certificates.<br/>In most Linux systems it may
@@ -280,13 +270,9 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 					throw new RuntimeException("Unknown trust model: " + trustModel);
 				}
 
-				File[] path;
-				if (allInOneFile) {
-					path = new File[] { new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".pem") };
-				} else {
-					path = new File[] { new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".key"),
-							new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".cer") };
-				}
+				File[] path = new File[] { new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".pem"),
+						new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".key"),
+						new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".cer") };
 				KeyStore keyStore = loadFromPEMFile(path, hostname, privateKeyPassphrase);
 				KeyManagerFactory kmf = KeyManagerFactory.getInstance(KEY_MANAGER_ALGORITHM);
 				kmf.init(keyStore, privateKeyPassphrase.toCharArray());
@@ -353,8 +339,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		}
 		this.domainKeysPath = getFromMap(params, SERVER_CERTS_DIR_KEY, SERVER_CERTS_DIR_VAL);
 		this.privateKeyPassphrase = getFromMap(params, PEM_PRIVATE_PWD_KEY, PEM_PRIVATE_PWD_VAL);
-		this.defaultHostname = getFromMap(params, DEFAULT_DOMAIN_NAME_KEY, DEFAULT_DOMAIN_NAME_VAL);
-		this.allInOneFile = "true".equals(getFromMap(params, KEY_CERT_IN_ONE_FILE_KEY, KEY_CERT_IN_ONE_FILE_VAL));
+		this.defaultHostname = getFromMap(params, DEFAULT_DOMAIN_CERT_KEY, DEFAULT_DOMAIN_CERT_VAL);
 
 		try {
 			init();
@@ -381,6 +366,8 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		Key key = null;
 		log.info("Reading private key & certificate chain; alias: '" + alias + "', password: '" + privateKeyPassphrase + "'");
 		for (File fileName : fileNames) {
+			if (!fileName.exists())
+				continue;
 			log.info("Reading data from file " + fileName);
 
 			PEMReader reader = null;
