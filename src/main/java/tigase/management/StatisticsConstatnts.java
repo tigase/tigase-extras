@@ -49,7 +49,7 @@ public interface StatisticsConstatnts {
 	public static final String LAST_MINUTE_STAT = "Last minute packets";
 	public static final String LAST_HOUR_STAT = "Last hour packets";
 
-	public static final Long DEF_LONG = 1L;
-	public static final String DEF_STR = "unknown";
+	//public static final Long DEF_LONG = 1L;
+	//public static final String DEF_STR = "unknown";
 
 }
