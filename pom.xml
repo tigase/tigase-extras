@@ -127,7 +127,7 @@
     </dependency>
     <dependency>
       <groupId>openDMK</groupId>
-      <artifactId>jmxrt</artifactId>
+      <artifactId>jdmkrt</artifactId>
       <version>1.0-b02</version>
     </dependency>
   </dependencies>
