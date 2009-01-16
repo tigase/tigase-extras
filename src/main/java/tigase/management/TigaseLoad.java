@@ -11,7 +11,6 @@ import java.io.Serializable;
 // jmx imports
 //
 import javax.management.MBeanServer;
-import com.sun.management.snmp.SnmpString;
 import com.sun.management.snmp.SnmpStatusException;
 import static tigase.management.StatisticsConstatnts.*;
 
@@ -251,7 +250,7 @@ public class TigaseLoad implements TigaseLoadMBean, Serializable {
      * Getter for the "TigaseLoadPubSubLastMinute" variable.
      */
     public Long getTigaseLoadPubSubLastMinute() throws SnmpStatusException {
-      TigaseLoadPubSubLastMinute =
+			TigaseLoadPubSubLastMinute =
 							StatisticsUtils.getStatsValue(PUBSUB_COMP, LAST_MINUTE_STAT,
 							TigaseLoadPubSubLastMinute);
 			return TigaseLoadPubSubLastMinute;
