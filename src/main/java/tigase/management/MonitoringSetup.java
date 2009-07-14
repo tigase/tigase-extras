@@ -27,7 +27,6 @@ import com.sun.jdmk.comm.HtmlAdaptorServer;
 import com.sun.management.comm.SnmpAdaptorServer;
 import com.sun.jndi.rmi.registry.RegistryContextFactory;
 import com.sun.management.snmp.IPAcl.JdmkAcl;
-import com.sun.management.snmp.SnmpEngineParameters;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.rmi.registry.LocateRegistry;
