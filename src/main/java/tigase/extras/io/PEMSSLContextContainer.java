@@ -366,8 +366,9 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		Key key = null;
 		log.info("Reading private key & certificate chain; alias: '" + alias + "', password: '" + privateKeyPassphrase + "'");
 		for (File fileName : fileNames) {
-			if (!fileName.exists())
+			if (!fileName.exists()) {
 				continue;
+			}
 			log.info("Reading data from file " + fileName);
 
 			PEMReader reader = null;
