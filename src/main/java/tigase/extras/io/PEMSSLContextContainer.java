@@ -143,12 +143,12 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		Security.addProvider(new BouncyCastleProvider());
 
 		PEMSSLContextContainer x = new PEMSSLContextContainer();
-		Map<String, String> p = new HashMap<String, String>();
+		Map<String, Object> p = new HashMap<String, Object>();
 
-		p.put(PEMSSLContextContainer.SERVER_CERTS_DIR_KEY, "./");
+		p.put(SERVER_CERTS_LOCATION_KEY, "./");
 
 		// p.put(PEMSSLContextContainer.TRUSTED_CERTS_DIR_KEY, "/tmp/");
-		p.put(PEMSSLContextContainer.ALLOW_SELF_SIGNED_CERTS_KEY, "true");
+		p.put(ALLOW_SELF_SIGNED_CERTS_KEY, "true");
 		x.init(p);
 
 		SSLContext ctx = x.getSSLContext("tls", "malkowscy.net");
@@ -157,11 +157,9 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		try {
 
 			// Construct data
-			String data = URLEncoder.encode("key1", "UTF-8") + "="
-				+ URLEncoder.encode("value1", "UTF-8");
+			String data = URLEncoder.encode("key1", "UTF-8") + "=" + URLEncoder.encode("value1", "UTF-8");
 
-			data += "&" + URLEncoder.encode("key2", "UTF-8") + "="
-					+ URLEncoder.encode("value2", "UTF-8");
+			data += "&" + URLEncoder.encode("key2", "UTF-8") + "=" + URLEncoder.encode("value2", "UTF-8");
 
 			// Send header
 			String path = "/";
@@ -255,10 +253,8 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 				}
 
 				File[] path = new File[] {
-					new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname
-						+ ".pem"),
-					new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname
-						+ ".key"),
+					new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".pem"),
+					new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".key"),
 					new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname
 						+ ".cer") };
 				KeyStore keyStore = loadFromPEMFile(path, hostname, privateKeyPassphrase);
@@ -285,13 +281,13 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void init(Map<String, String> params) {
+	public void init(Map<String, Object> params) {
 		this.caCertsPath = getFromMap(params, TRUSTED_CERTS_DIR_KEY, TRUSTED_CERTS_DIR_VAL);
 
 		boolean allowInvalidCerts = Boolean.getBoolean(getFromMap(params, ALLOW_INVALID_CERTS_KEY,
 			ALLOW_INVALID_CERTS_VAL));
-		boolean allowSelfSignedCerts = "true".equals(getFromMap(params,
-			ALLOW_SELF_SIGNED_CERTS_KEY, ALLOW_SELF_SIGNED_CERTS_VAL));
+		boolean allowSelfSignedCerts = "true".equals(getFromMap(params, ALLOW_SELF_SIGNED_CERTS_KEY,
+			ALLOW_SELF_SIGNED_CERTS_VAL));
 
 		if (allowInvalidCerts) {
 			this.trustModel = TrustModel.all;
@@ -303,10 +299,9 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 			}
 		}
 
-		this.domainKeysPath = getFromMap(params, SERVER_CERTS_DIR_KEY, SERVER_CERTS_DIR_VAL);
+		this.domainKeysPath = getFromMap(params, SERVER_CERTS_LOCATION_KEY, SERVER_CERTS_LOCATION_VAL);
 		this.privateKeyPassphrase = getFromMap(params, PEM_PRIVATE_PWD_KEY, PEM_PRIVATE_PWD_VAL);
-		this.defaultHostname = getFromMap(params, DEFAULT_DOMAIN_CERT_KEY,
-				DEFAULT_DOMAIN_CERT_VAL);
+		this.defaultHostname = getFromMap(params, DEFAULT_DOMAIN_CERT_KEY, DEFAULT_DOMAIN_CERT_VAL);
 
 		try {
 			init();
@@ -317,9 +312,9 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 
 	//~--- get methods ----------------------------------------------------------
 
-	private String getFromMap(Map<String, String> params, String key, String defaultVal) {
+	private String getFromMap(Map<String, Object> params, String key, String defaultVal) {
 		if (params.containsKey(key)) {
-			return params.get(key);
+			return (String) params.get(key);
 		} else {
 			params.put(key, defaultVal);
 
@@ -337,8 +332,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 
 		trustKeyStore = KeyStore.getInstance(KEY_STORE_ALGORITHM);
 		trustKeyStore.load(null, internalKeystorePassword.toCharArray());
-		log.config("Initializing SSL Context Container with trust model = "
-				+ this.trustModel.name());
+		log.config("Initializing SSL Context Container with trust model = " + this.trustModel.name());
 		log.info("Loading trusted CA certificates from " + root.getAbsolutePath() + "...");
 
 		if (files != null) {
@@ -440,8 +434,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		}
 	}
 
-	private List<Object> readObjectsFromFile(File file, final String password)
-			throws IOException {
+	private List<Object> readObjectsFromFile(File file, final String password) throws IOException {
 		PEMReader reader = null;
 		PasswordFinder pfinder = new PasswordFinder() {
 			@Override
@@ -537,8 +530,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 
 				trustKeystore.store(out, "".toCharArray());
-				this.localTrustKeystore.load(new ByteArrayInputStream(out.toByteArray()),
-						"".toCharArray());
+				this.localTrustKeystore.load(new ByteArrayInputStream(out.toByteArray()), "".toCharArray());
 				certPathValidator = CertPathValidator.getInstance(CertPathValidator.getDefaultType());
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error on construct TrustManager", e);
@@ -586,8 +578,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 				this.localTrustKeystore.setCertificateEntry("root", root);
 
 				X509CertSelector selector = new X509CertSelector();
-				PKIXBuilderParameters params = new PKIXBuilderParameters(this.localTrustKeystore,
-					selector);
+				PKIXBuilderParameters params = new PKIXBuilderParameters(this.localTrustKeystore, selector);
 
 				params.setRevocationEnabled(false);
 
