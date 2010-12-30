@@ -273,6 +273,17 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		}
 	}
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @return
+	 */
+	@Override
+	public KeyStore getTrustStore() {
+		return trustKeyStore;
+	}
+
 	//~--- methods --------------------------------------------------------------
 
 	/**
