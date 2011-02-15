@@ -115,8 +115,9 @@ public class MonitoringSetup implements MonitoringSetupIfc {
 						log.config("Loading JMX monitor.");
 						LocateRegistry.createRegistry(port);
 
-						String serviceURL = "service:jmx:rmi" + ":///jndi/rmi" + "://localhost:"
-																+ mon[1] + "/jmxrmi" + "";
+						String serviceURL = "service:jmx:rmi://localhost:" + mon[1] 
+						                    + "/jndi/rmi://localhost:" + mon[1] + "/jmxrmi";
+						
 						Map<String, String> map = new LinkedHashMap<String, String>();
 
 						map.put("java.naming.factory.initial",
