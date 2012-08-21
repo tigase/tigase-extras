@@ -7,7 +7,7 @@
   <groupId>tigase</groupId>
   <artifactId>tigase-extras</artifactId>
   <name>Tigase Server Extras</name>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <description>Extra modules to Tigase Server.</description>
   <url>http://www.tigase.org/</url>
   <issueManagement>
@@ -44,9 +44,9 @@
     </license>
   </licenses>
   <scm>
-    <connection>scm:svn:https://svn.tigase.org/reps/tigase-extras/trunk</connection>
-    <developerConnection>scm:svn:https://svn.tigase.org/reps/tigase-extras/trunk</developerConnection>
-    <url>https://svn.tigase.org/reps/tigase-extras</url>
+    <connection>scm:svn:https://svn.tigase.org/reps/tigase-extras/tags/tigase-extras-1.0.0</connection>
+    <developerConnection>scm:svn:https://svn.tigase.org/reps/tigase-extras/tags/tigase-extras-1.0.0</developerConnection>
+    <url>scm:svn:https://svn.tigase.org/reps/tigase-extras/tags/tigase-extras-1.0.0</url>
   </scm>
   <organization>
     <name>Tigase</name>
