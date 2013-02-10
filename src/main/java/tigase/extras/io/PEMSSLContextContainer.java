@@ -54,6 +54,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import tigase.io.SSLContextContainer;
 
 //~--- classes ----------------------------------------------------------------
 
@@ -75,6 +76,8 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 	/** Field description */
 	public static final String PEM_PRIVATE_PWD_VAL = "";
 	private final static String TRUST_MANAGER_ALGORITHM = "X509";
+	private X509TrustManager[] tms = new X509TrustManager[] { new DummyTrustManager() };
+	private SecureRandom secureRandom = new SecureRandom();
 
 	//~--- constant enums -------------------------------------------------------
 
@@ -151,7 +154,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		p.put(ALLOW_SELF_SIGNED_CERTS_KEY, "true");
 		x.init(p);
 
-		SSLContext ctx = x.getSSLContext("tls", "malkowscy.net");
+		SSLContext ctx = x.getSSLContext("tls", "malkowscy.net", false);
 		Socket socket = ctx.getSocketFactory().createSocket("www.mbank.com.pl", 443);
 
 		try {
@@ -212,7 +215,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public SSLContext getSSLContext(String protocol, String hostname) {
+	public SSLContext getSSLContext(String protocol, String hostname, boolean clientMode) {
 		if (hostname == null) {
 			hostname = defaultHostname;
 		}
@@ -220,6 +223,13 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		try {
 			String map_key = hostname + ":" + protocol;
 			SSLContext sslContext = sslContexts.get(map_key);
+
+
+			if ( clientMode ){
+				sslContext = SSLContext.getInstance( protocol );
+				sslContext.init( null, tms, secureRandom );
+				return sslContext;
+			}
 
 			if (sslContext == null) {
 				sslContext = SSLContext.getInstance(protocol);
