@@ -1,10 +1,34 @@
+/*
+ * PEMSSLContextContainer.java
+ *
+ * Tigase Jabber/XMPP Server
+ * Copyright (C) 2004-2013 "Tigase, Inc." <office@tigase.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. Look for COPYING file in the top folder.
+ * If not, see http://www.gnu.org/licenses/.
+ *
+ */
+
+
+
 package tigase.extras.io;
 
 //~--- non-JDK imports --------------------------------------------------------
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMReader;
 import org.bouncycastle.openssl.PasswordFinder;
+import org.bouncycastle.openssl.PEMReader;
 
 import tigase.io.SSLContextContainerIfc;
 
@@ -16,13 +40,21 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 
 import java.net.Socket;
 import java.net.URLEncoder;
 
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.CertPath;
+import java.security.cert.CertPathValidator;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.X509Certificate;
+import java.security.cert.X509CertSelector;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.Key;
 import java.security.KeyPair;
@@ -31,22 +63,14 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Security;
-import java.security.cert.CertPath;
-import java.security.cert.CertPathValidator;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.PKIXBuilderParameters;
-import java.security.cert.X509CertSelector;
-import java.security.cert.X509Certificate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Map;
 
 import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManagerFactory;
@@ -54,42 +78,30 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import tigase.io.SSLContextContainer;
-
-//~--- classes ----------------------------------------------------------------
 
 /**
  * Class description
- * 
- * 
+ *
+ *
  * @version 5.0.0, 2010.04.03 at 08:51:32 CEST
  * @author Artur Hefczyc <artur.hefczyc@tigase.org>
  */
-public class PEMSSLContextContainer implements SSLContextContainerIfc {
-	private final static String KEY_MANAGER_ALGORITHM = "SunX509";
-	private final static String KEY_STORE_ALGORITHM = "JKS";
-	protected static final Logger log = Logger.getLogger(PEMSSLContextContainer.class.getName());
-
+public class PEMSSLContextContainer
+				implements SSLContextContainerIfc {
 	/** Field description */
 	public static final String PEM_PRIVATE_PWD_KEY = "pem-privatekey-password";
 
 	/** Field description */
-	public static final String PEM_PRIVATE_PWD_VAL = "";
+	public static final String PEM_PRIVATE_PWD_VAL    = "";
+	private final static String KEY_MANAGER_ALGORITHM = "SunX509";
+	private final static String KEY_STORE_ALGORITHM   = "JKS";
+
+	/** Field description */
+	protected static final Logger log =
+		Logger.getLogger(PEMSSLContextContainer.class.getName());
 	private final static String TRUST_MANAGER_ALGORITHM = "X509";
-	private X509TrustManager[] tms = new X509TrustManager[] { new DummyTrustManager() };
-	private SecureRandom secureRandom = new SecureRandom();
 
-	// ~--- constant enums
-	// -------------------------------------------------------
-
-	private static enum TrustModel {
-		all,
-		selfsigned,
-		trusted
-	}
-
-	// ~--- fields
-	// ---------------------------------------------------------------
+	//~--- fields ---------------------------------------------------------------
 
 	/**
 	 * Path to directory with CA certificates.<br/>
@@ -114,39 +126,44 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 	 * <li><code>malkowscy.net.pem</code></li>
 	 * </ul>
 	 */
-	private String domainKeysPath = "";
+	private String domainKeysPath           = "";
 	private String internalKeystorePassword = "";
 
 	/**
 	 * When private keys are encrypted, they MUST be encrypted with one
 	 * passphrase!
 	 */
-	private String privateKeyPassphrase = "";
+	private String privateKeyPassphrase         = "";
+	private X509TrustManager[] tms              = new X509TrustManager[] {
+																									new DummyTrustManager() };
 	private Map<String, SSLContext> sslContexts = new HashMap<String, SSLContext>();
-	private TrustModel trustModel = TrustModel.all;
+	private SecureRandom secureRandom           = new SecureRandom();
+	private TrustModel trustModel               = TrustModel.all;
 	private KeyStore trustKeyStore;
 	private TrustManagerFactory trustManagerFactory;
 
-	// ~--- constructors
-	// ---------------------------------------------------------
+	//~--- constant enums -------------------------------------------------------
+
+	private static enum TrustModel { all, selfsigned, trusted }
+
+	//~--- constructors ---------------------------------------------------------
 
 	/**
 	 * Constructs ...
-	 * 
+	 *
 	 */
 	public PEMSSLContextContainer() {
 		Security.addProvider(new BouncyCastleProvider());
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
+	//~--- methods --------------------------------------------------------------
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param args
-	 * 
+	 *
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
@@ -154,7 +171,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		Security.addProvider(new BouncyCastleProvider());
 
 		PEMSSLContextContainer x = new PEMSSLContextContainer();
-		Map<String, Object> p = new HashMap<String, Object>();
+		Map<String, Object> p    = new HashMap<String, Object>();
 
 		p.put(SERVER_CERTS_LOCATION_KEY, "./");
 
@@ -163,18 +180,21 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		x.init(p);
 
 		SSLContext ctx = x.getSSLContext("tls", "malkowscy.net", false);
-		Socket socket = ctx.getSocketFactory().createSocket("www.mbank.com.pl", 443);
+		Socket socket  = ctx.getSocketFactory().createSocket("www.mbank.com.pl", 443);
 
 		try {
 
 			// Construct data
-			String data = URLEncoder.encode("key1", "UTF-8") + "=" + URLEncoder.encode("value1", "UTF-8");
+			String data = URLEncoder.encode("key1", "UTF-8") + "=" +
+										URLEncoder.encode("value1", "UTF-8");
 
-			data += "&" + URLEncoder.encode("key2", "UTF-8") + "=" + URLEncoder.encode("value2", "UTF-8");
+			data += "&" + URLEncoder.encode("key2", "UTF-8") + "=" +
+							URLEncoder.encode("value2", "UTF-8");
 
 			// Send header
-			String path = "/";
-			BufferedWriter wr = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
+			String path       = "/";
+			BufferedWriter wr =
+				new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
 
 			wr.write("POST " + path + " HTTP/1.0\r\n");
 			wr.write("Content-Length: " + data.length() + "\r\n");
@@ -186,14 +206,14 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 			wr.flush();
 
 			// Get response
-			BufferedReader rd = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			BufferedReader rd =
+				new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			String line;
 
 			while ((line = rd.readLine()) != null) {
 
 				// System.out.println(line);
 			}
-
 			wr.close();
 			rd.close();
 		} catch (Exception e) {
@@ -202,7 +222,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param params
 	 *            {@inheritDoc}
 	 */
@@ -211,34 +231,45 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		sslContexts.clear();
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
+	//~--- get methods ----------------------------------------------------------
 
+	/**
+	 * Method description
+	 *
+	 *
+	 * @param protocol
+	 * @param hostname
+	 * @param clientMode
+	 *
+	 * @return
+	 */
 	@Override
 	public SSLContext getSSLContext(String protocol, String hostname, boolean clientMode) {
-
 		TrustManager[] trustManagers;
 
 		switch (trustModel) {
-		case all:
+		case all :
 			trustManagers = new TrustManager[] { new DummyTrustManager() };
-			log.fine("Creating SSLConext for " + protocol + ":" + hostname + " with trust everyone model.");
+			log.fine("Creating SSLConext for " + protocol + ":" + hostname +
+							 " with trust everyone model.");
 
 			break;
 
-		case selfsigned:
+		case selfsigned :
 			trustManagers = new TrustManager[] { new SelfSignedTrustManager(trustKeyStore) };
-			log.fine("Creating SSLConext for " + protocol + ":" + hostname + " all valid pathes model.");
+			log.fine("Creating SSLConext for " + protocol + ":" + hostname +
+							 " all valid pathes model.");
 
 			break;
 
-		case trusted:
+		case trusted :
 			trustManagers = trustManagerFactory.getTrustManagers();
-			log.fine("Creating SSLConext for " + protocol + ":" + hostname + " trusted CA based model.");
+			log.fine("Creating SSLConext for " + protocol + ":" + hostname +
+							 " trusted CA based model.");
 
 			break;
 
-		default:
+		default :
 			throw new RuntimeException("Unknown trust model: " + trustModel);
 		}
 
@@ -246,36 +277,39 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param protocol
 	 * @param hostname
-	 * 
+	 *
 	 * @return {@inheritDoc}
 	 */
 	@Override
-	public SSLContext getSSLContext(String protocol, String hostname, boolean clientMode, TrustManager... trustManagers) {
+	public SSLContext getSSLContext(String protocol, String hostname, boolean clientMode,
+																	TrustManager... trustManagers) {
 		if (hostname == null) {
 			hostname = defaultHostname;
 		}
-
 		try {
-			String map_key = hostname + ":" + protocol;
+			String map_key        = hostname + ":" + protocol;
 			SSLContext sslContext = sslContexts.get(map_key);
 
 			if (clientMode) {
 				sslContext = SSLContext.getInstance(protocol);
 				sslContext.init(null, tms, secureRandom);
+
 				return sslContext;
 			}
-
 			if (sslContext == null) {
 				sslContext = SSLContext.getInstance(protocol);
 
 				File[] path = new File[] {
-						new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".pem"),
-						new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".key"),
-						new File(new File(domainKeysPath).getAbsoluteFile() + File.separator + hostname + ".cer") };
-				KeyStore keyStore = loadFromPEMFile(path, hostname, privateKeyPassphrase);
+												new File(new File(domainKeysPath).getAbsoluteFile() +
+																 File.separator + hostname + ".pem"),
+												new File(new File(domainKeysPath).getAbsoluteFile() +
+																 File.separator + hostname + ".key"),
+												new File(new File(domainKeysPath).getAbsoluteFile() +
+																 File.separator + hostname + ".cer") };
+				KeyStore keyStore     = loadFromPEMFile(path, hostname, privateKeyPassphrase);
 				KeyManagerFactory kmf = KeyManagerFactory.getInstance(KEY_MANAGER_ALGORITHM);
 
 				kmf.init(keyStore, privateKeyPassphrase.toCharArray());
@@ -293,8 +327,8 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @return
 	 */
 	@Override
@@ -302,11 +336,10 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		return trustKeyStore;
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
+	//~--- methods --------------------------------------------------------------
 
 	/**
-	 * 
+	 *
 	 * @param params
 	 *            {@inheritDoc}
 	 */
@@ -314,9 +347,11 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 	public void init(Map<String, Object> params) {
 		this.caCertsPath = getFromMap(params, TRUSTED_CERTS_DIR_KEY, TRUSTED_CERTS_DIR_VAL);
 
-		boolean allowInvalidCerts = Boolean.getBoolean(getFromMap(params, ALLOW_INVALID_CERTS_KEY, ALLOW_INVALID_CERTS_VAL));
-		boolean allowSelfSignedCerts = "true".equals(getFromMap(params, ALLOW_SELF_SIGNED_CERTS_KEY,
-				ALLOW_SELF_SIGNED_CERTS_VAL));
+		boolean allowInvalidCerts = Boolean.getBoolean(getFromMap(params,
+																	ALLOW_INVALID_CERTS_KEY, ALLOW_INVALID_CERTS_VAL));
+		boolean allowSelfSignedCerts = "true".equals(getFromMap(params,
+																		 ALLOW_SELF_SIGNED_CERTS_KEY,
+																		 ALLOW_SELF_SIGNED_CERTS_VAL));
 
 		if (allowInvalidCerts) {
 			this.trustModel = TrustModel.all;
@@ -327,11 +362,12 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 				this.trustModel = TrustModel.trusted;
 			}
 		}
-
-		this.domainKeysPath = getFromMap(params, SERVER_CERTS_LOCATION_KEY, SERVER_CERTS_LOCATION_VAL);
-		this.privateKeyPassphrase = getFromMap(params, PEM_PRIVATE_PWD_KEY, PEM_PRIVATE_PWD_VAL);
-		this.defaultHostname = getFromMap(params, DEFAULT_DOMAIN_CERT_KEY, DEFAULT_DOMAIN_CERT_VAL);
-
+		this.domainKeysPath = getFromMap(params, SERVER_CERTS_LOCATION_KEY,
+																		 SERVER_CERTS_LOCATION_VAL);
+		this.privateKeyPassphrase = getFromMap(params, PEM_PRIVATE_PWD_KEY,
+						PEM_PRIVATE_PWD_VAL);
+		this.defaultHostname = getFromMap(params, DEFAULT_DOMAIN_CERT_KEY,
+																			DEFAULT_DOMAIN_CERT_VAL);
 		try {
 			init();
 		} catch (Exception e) {
@@ -339,8 +375,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		}
 	}
 
-	// ~--- get methods
-	// ----------------------------------------------------------
+	//~--- get methods ----------------------------------------------------------
 
 	private String getFromMap(Map<String, Object> params, String key, String defaultVal) {
 		if (params.containsKey(key)) {
@@ -352,19 +387,19 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		}
 	}
 
-	// ~--- methods
-	// --------------------------------------------------------------
+	//~--- methods --------------------------------------------------------------
 
-	private void init() throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException,
-			InvalidAlgorithmParameterException {
-		File root = new File(caCertsPath);
+	private void init()
+					throws IOException, KeyStoreException, NoSuchAlgorithmException,
+								 CertificateException, InvalidAlgorithmParameterException {
+		File root    = new File(caCertsPath);
 		File[] files = root.listFiles();
 
 		trustKeyStore = KeyStore.getInstance(KEY_STORE_ALGORITHM);
 		trustKeyStore.load(null, internalKeystorePassword.toCharArray());
-		log.config("Initializing SSL Context Container with trust model = " + this.trustModel.name());
+		log.config("Initializing SSL Context Container with trust model = " +
+							 this.trustModel.name());
 		log.info("Loading trusted CA certificates from " + root.getAbsolutePath() + "...");
-
 		if (files != null) {
 			for (File file : files) {
 				try {
@@ -373,17 +408,15 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 					for (Object object : objs) {
 						if (object instanceof X509Certificate) {
 							X509Certificate crt = (X509Certificate) object;
-							String alias = crt.getSubjectDN().getName();
+							String alias        = crt.getSubjectDN().getName();
 
 							trustKeyStore.setCertificateEntry(alias, crt);
 							log.finest("Imported cert: " + crt.getSubjectDN().getName());
 						}
 					}
-				} catch (Exception e) {
-				}
+				} catch (Exception e) {}
 			}
 		}
-
 		log.info("Loaded " + trustKeyStore.size() + " trusted CA certificates.");
 		trustManagerFactory = TrustManagerFactory.getInstance(TRUST_MANAGER_ALGORITHM);
 
@@ -397,8 +430,10 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		trustManagerFactory.init(p);
 	}
 
-	private KeyStore loadFromPEMFile(File[] fileNames, String alias, final String privateKeyPassphrase) throws IOException,
-			KeyStoreException, NoSuchAlgorithmException, CertificateException {
+	private KeyStore loadFromPEMFile(File[] fileNames, String alias,
+																	 final String privateKeyPassphrase)
+					throws IOException, KeyStoreException, NoSuchAlgorithmException,
+								 CertificateException {
 		PasswordFinder x = new PasswordFinder() {
 			@Override
 			public char[] getPassword() {
@@ -410,15 +445,14 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 			}
 		};
 		List<Certificate> certs = new ArrayList<Certificate>();
-		Key key = null;
+		Key key                 = null;
 
-		log.info("Reading private key & certificate chain; alias: '" + alias + "', password: '" + privateKeyPassphrase + "'");
-
+		log.info("Reading private key & certificate chain; alias: '" + alias +
+						 "', password: '" + privateKeyPassphrase + "'");
 		for (File fileName : fileNames) {
 			if (!fileName.exists()) {
 				continue;
 			}
-
 			log.info("Reading data from file " + fileName);
 
 			PEMReader reader = null;
@@ -447,22 +481,24 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 				}
 			}
 		}
-
 		if (certs.size() > 0) {
 			KeyStore keyStore = KeyStore.getInstance(KEY_STORE_ALGORITHM);
 
 			keyStore.load(null, internalKeystorePassword.toCharArray());
-			keyStore.setKeyEntry(alias, key, internalKeystorePassword.toCharArray(), certs.toArray(new Certificate[] {}));
+			keyStore.setKeyEntry(alias, key, internalKeystorePassword.toCharArray(),
+													 certs.toArray(new Certificate[] {}));
 
 			return keyStore;
 		} else {
-			return loadFromPEMFile(new File[] { new File(new File(domainKeysPath).getAbsoluteFile() + File.separator
-					+ "default.pem") }, alias, privateKeyPassphrase);
+			return loadFromPEMFile(new File[] {
+				new File(new File(domainKeysPath).getAbsoluteFile() + File.separator +
+								 "default.pem") }, alias, privateKeyPassphrase);
 		}
 	}
 
-	private List<Object> readObjectsFromFile(File file, final String password) throws IOException {
-		PEMReader reader = null;
+	private List<Object> readObjectsFromFile(File file, final String password)
+					throws IOException {
+		PEMReader reader       = null;
 		PasswordFinder pfinder = new PasswordFinder() {
 			@Override
 			public char[] getPassword() {
@@ -492,44 +528,44 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		}
 	}
 
-	// ~--- inner classes
-	// --------------------------------------------------------
+	//~--- inner classes --------------------------------------------------------
 
-	private static class DummyTrustManager implements X509TrustManager {
-
+	private static class DummyTrustManager
+					implements X509TrustManager {
 		/**
 		 * Method description
-		 * 
-		 * 
+		 *
+		 *
 		 * @param x509CertificateArray
 		 * @param string
-		 * 
+		 *
 		 * @throws CertificateException
 		 */
-		public void checkClientTrusted(final X509Certificate[] x509CertificateArray, final String string)
-				throws CertificateException {
-		}
+		@Override
+		public void checkClientTrusted(final X509Certificate[] x509CertificateArray,
+																	 final String string)
+						throws CertificateException {}
 
 		/**
 		 * Method description
-		 * 
-		 * 
+		 *
+		 *
 		 * @param x509CertificateArray
 		 * @param string
-		 * 
+		 *
 		 * @throws CertificateException
 		 */
-		public void checkServerTrusted(final X509Certificate[] x509CertificateArray, final String string)
-				throws CertificateException {
-		}
+		@Override
+		public void checkServerTrusted(final X509Certificate[] x509CertificateArray,
+																	 final String string)
+						throws CertificateException {}
 
-		// ~--- get methods
-		// --------------------------------------------------------
+		//~--- get methods --------------------------------------------------------
 
 		/**
 		 * Method description
-		 * 
-		 * 
+		 *
+		 *
 		 * @return
 		 */
 		@Override
@@ -538,18 +574,19 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 		}
 	}
 
-	private static class SelfSignedTrustManager implements X509TrustManager {
+
+	private static class SelfSignedTrustManager
+					implements X509TrustManager {
 		private CertPathValidator certPathValidator;
 		private KeyStore localTrustKeystore;
 		private X509Certificate root;
 
-		// ~--- constructors
-		// -------------------------------------------------------
+		//~--- constructors -------------------------------------------------------
 
 		/**
 		 * Constructs ...
-		 * 
-		 * 
+		 *
+		 *
 		 * @param trustKeystore
 		 */
 		public SelfSignedTrustManager(KeyStore trustKeystore) {
@@ -559,8 +596,10 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 
 				trustKeystore.store(out, "".toCharArray());
-				this.localTrustKeystore.load(new ByteArrayInputStream(out.toByteArray()), "".toCharArray());
-				certPathValidator = CertPathValidator.getInstance(CertPathValidator.getDefaultType());
+				this.localTrustKeystore.load(new ByteArrayInputStream(out.toByteArray()),
+																		 "".toCharArray());
+				certPathValidator =
+					CertPathValidator.getInstance(CertPathValidator.getDefaultType());
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error on construct TrustManager", e);
 
@@ -568,33 +607,33 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 			}
 		}
 
-		// ~--- methods
-		// ------------------------------------------------------------
+		//~--- methods ------------------------------------------------------------
 
 		/**
 		 * Method description
-		 * 
-		 * 
+		 *
+		 *
 		 * @param chain
 		 * @param authType
-		 * 
+		 *
 		 * @throws CertificateException
 		 */
 		@Override
-		public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-		}
+		public void checkClientTrusted(X509Certificate[] chain, String authType)
+						throws CertificateException {}
 
 		/**
 		 * Method description
-		 * 
-		 * 
+		 *
+		 *
 		 * @param chain
 		 * @param authType
-		 * 
+		 *
 		 * @throws CertificateException
 		 */
 		@Override
-		public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+		public void checkServerTrusted(X509Certificate[] chain, String authType)
+						throws CertificateException {
 			for (X509Certificate certificate : chain) {
 				if (certificate.getIssuerDN().equals(certificate.getSubjectDN())) {
 					root = certificate;
@@ -602,17 +641,18 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 					break;
 				}
 			}
-
 			try {
 				this.localTrustKeystore.setCertificateEntry("root", root);
 
-				X509CertSelector selector = new X509CertSelector();
-				PKIXBuilderParameters params = new PKIXBuilderParameters(this.localTrustKeystore, selector);
+				X509CertSelector selector    = new X509CertSelector();
+				PKIXBuilderParameters params = new PKIXBuilderParameters(this.localTrustKeystore,
+																				 selector);
 
 				params.setRevocationEnabled(false);
 
 				List<X509Certificate> certList = Arrays.asList(chain);
-				CertPath certPath = CertificateFactory.getInstance("X.509").generateCertPath(certList);
+				CertPath certPath              =
+					CertificateFactory.getInstance("X.509").generateCertPath(certList);
 
 				certPathValidator.validate(certPath, params);
 			} catch (Exception e) {
@@ -620,13 +660,12 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 			}
 		}
 
-		// ~--- get methods
-		// --------------------------------------------------------
+		//~--- get methods --------------------------------------------------------
 
 		/**
 		 * Method description
-		 * 
-		 * 
+		 *
+		 *
 		 * @return
 		 */
 		@Override
@@ -634,9 +673,7 @@ public class PEMSSLContextContainer implements SSLContextContainerIfc {
 			return new X509Certificate[] { root };
 		}
 	}
-
 }
 
-// ~ Formatted in Sun Code Convention
 
-// ~ Formatted by Jindent --- http://www.jindent.com
+//~ Formatted in Tigase Code Convention on 13/03/09
