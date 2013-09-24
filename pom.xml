@@ -125,6 +125,7 @@
 							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
 						</manifest>
 						<manifestEntries>
+							<Implementation-Title>${project.name}: ${project.description}</Implementation-Title>
 							<Implementation-Version>${project.version}-b${gitVersion}/${buildNumber}</Implementation-Version>
 							<Implementation-Build>${gitVersion}/${buildNumber} (${maven.build.timestamp})</Implementation-Build>
 						</manifestEntries>
