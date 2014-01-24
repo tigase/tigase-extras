@@ -8,7 +8,7 @@
 	<groupId>tigase</groupId>
 	<artifactId>tigase-extras</artifactId>
 	<name>Tigase Server Extras</name>
-	<version>1.1.0-tigase-server-5.2.0-rc2</version>
+	<version>1.1.0-SNAPSHOT</version>
 	<description>Extra modules to Tigase Server.</description>
 	<url>http://www.tigase.org/</url>
 	<issueManagement>
@@ -154,19 +154,19 @@
 		<dependency>
 			<groupId>tigase</groupId>
 			<artifactId>tigase-utils</artifactId>
-			<version>3.4.2-tigase-server-5.2.0-rc2</version>
+			<version>3.4.2-SNAPSHOT</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>tigase</groupId>
 			<artifactId>tigase-xmltools</artifactId>
-			<version>3.4.4-tigase-server-5.2.0-rc2</version>
+			<version>3.4.3-SNAPSHOT</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>tigase</groupId>
 			<artifactId>tigase-server</artifactId>
-			<version>5.2.0-rc2</version>
+			<version>5.2.0-SNAPSHOT</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
