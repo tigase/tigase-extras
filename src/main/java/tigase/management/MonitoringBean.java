@@ -47,7 +47,7 @@ import java.util.logging.Logger;
 /**
  * Created by andrzej on 13.10.2016.
  */
-@Bean(name = "monitoring", parent = Kernel.class)
+@Bean(name = "monitoring", parent = Kernel.class, active = true)
 public class MonitoringBean implements MonitoringBeanIfc, RegistrarBean {
 
 	@Inject(nullAllowed = true)
