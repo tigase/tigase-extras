@@ -1,0 +1,7 @@
+Hi!
+
+Click link
+
+${tokenVerifierURL}${tokenEncoded}
+
+to enable account ${jid}
