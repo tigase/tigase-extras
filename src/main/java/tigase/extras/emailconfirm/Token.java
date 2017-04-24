@@ -67,13 +67,19 @@ public class Token {
 	}
 
 	public static Token parse(String encodedToken) {
+		if (encodedToken == null) {
+			throw new RuntimeException("Invalid token");
+		}
+
 		byte[] buff = Base64.decode(encodedToken);
+		if (buff == null || buff.length == 0)
+			throw new RuntimeException("Invalid token");
 		byte tokenType = buff[0];
 		switch (tokenType) {
 			case 1:
 				return decodeTokenV1(buff);
 			default:
-				throw new RuntimeException("Unkown token");
+				throw new RuntimeException("Unknown token");
 		}
 	}
 

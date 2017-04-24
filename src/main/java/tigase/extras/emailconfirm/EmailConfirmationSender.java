@@ -3,6 +3,8 @@ package tigase.extras.emailconfirm;
 import groovy.lang.Writable;
 import groovy.text.SimpleTemplateEngine;
 import groovy.text.Template;
+import tigase.component.exceptions.RepositoryException;
+import tigase.db.AuthRepository;
 import tigase.db.UserRepository;
 import tigase.eventbus.EventBus;
 import tigase.extras.mailer.Mailer;
@@ -11,7 +13,11 @@ import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.Inject;
 import tigase.kernel.beans.UnregisterAware;
 import tigase.kernel.beans.config.ConfigField;
+import tigase.kernel.core.Kernel;
+import tigase.util.DNSResolverFactory;
+import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
+import tigase.xmpp.XMPPProcessorException;
 import tigase.xmpp.impl.JabberIqRegister;
 
 import java.io.*;
@@ -24,9 +30,9 @@ import java.util.logging.Logger;
  * Created by bmalkow on 21.04.2017.
  */
 
-@Bean(name = "EmailConfirmationSender", active = true, exportable = true)
+@Bean(name = "account-registration-email-validator", parent = Kernel.class, active = false, exportable = true)
 public class EmailConfirmationSender
-		implements JabberIqRegister.MailConfirmationTokenSender, Initializable, UnregisterAware {
+		implements JabberIqRegister.AccountValidator, Initializable, UnregisterAware {
 
 	public static final String EMAIL_CONFIRMATION_TOKEN_KEY = "email-confirmation-token";
 	protected final Logger log = Logger.getLogger(this.getClass().getName());
@@ -40,7 +46,9 @@ public class EmailConfirmationSender
 	@ConfigField(desc = "Email template file")
 	private String templateFile = "mails/email-confirmation.template";
 	@ConfigField(desc = "URL of token verifier")
-	private String tokenVerifierURL = "http://token.verifier.com/token=";
+	private String tokenVerifierURL = "http://" + DNSResolverFactory.getInstance().getDefaultHost() + ":8080/rest/user/confirm/";
+	@Inject
+	private AuthRepository authRepository;
 	@Inject
 	private UserRepository userRepository;
 
@@ -52,6 +60,39 @@ public class EmailConfirmationSender
 	@Override
 	public void initialize() {
 		eventBus.registerAll(this);
+	}
+
+	@Override
+	public void checkRequiredParameters(BareJID jid, Map<String, String> reg_params) throws XMPPProcessorException {
+		if (reg_params.getOrDefault("email", "").trim().isEmpty()) {
+			throw new XMPPProcessorException(Authorization.NOT_ACCEPTABLE, "Email address is required");
+		}
+	}
+
+	@Override
+	public boolean sendAccountValidation(BareJID jid, Map<String, String> reg_params) {
+		String email = reg_params.get("email");
+		sendToken(jid, email, reg_params);
+		return true;
+	}
+
+	@Override
+	public BareJID validateAccount(String encodedToken) {
+		try {
+			Token token = Token.parse(encodedToken);
+			String tokenHash = userRepository.getData(token.getJid(), EMAIL_CONFIRMATION_TOKEN_KEY);
+			if (tokenHash == null) {
+				throw new RuntimeException("Invalid token");
+			}
+			if (!token.getHash().equals(tokenHash)) {
+				throw new RuntimeException("Invalid token");
+			}
+			authRepository.setAccountStatus(token.getJid(), AuthRepository.AccountStatus.active);
+			userRepository.removeData(token.getJid(), EMAIL_CONFIRMATION_TOKEN_KEY);
+			return token.getJid();
+		} catch (RepositoryException ex) {
+			throw new RuntimeException("Internal Server Error", ex);
+		}
 	}
 
 	private String load(final String file) throws IOException {
@@ -79,8 +120,7 @@ public class EmailConfirmationSender
 		}
 		return sb.toString();
 	}
-
-	@Override
+	
 	public void sendToken(BareJID bareJID, String email, Map<String, String> req_params) {
 
 		Token token = Token.create(bareJID);
