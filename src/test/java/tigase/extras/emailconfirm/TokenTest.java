@@ -3,8 +3,11 @@ package tigase.extras.emailconfirm;
 import org.junit.Assert;
 import org.junit.Test;
 import tigase.util.Base64;
+import tigase.util.TigaseStringprepException;
 import tigase.xmpp.BareJID;
 
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Random;
 
@@ -61,4 +64,25 @@ public class TokenTest {
 
 	}
 
+	@Test
+	public void testTokenUnicode1() throws TigaseStringprepException, UnsupportedEncodingException {
+		Token t = Token.create(BareJID.bareJIDInstance("\u0239la@b.c"), new Date(100), "1234567890");
+		byte[] buff = Base64.decode(t.getEncoded());
+		byte[] j = t.getJid().toString().getBytes("UTF-8");
+		Assert.assertArrayEquals("Invalid JID section", j, Arrays.copyOfRange(buff, 1, 1 + j.length));
+
+		Token t2 = Token.parse(t.getEncoded());
+		Assert.assertEquals("JIDs do not match!", t.getJid(), t2.getJid());
+	}
+
+	@Test
+	public void testTokenUnicode2() throws TigaseStringprepException, UnsupportedEncodingException {
+		Token t = Token.create(BareJID.bareJIDInstance("\u0200la@b.c"), new Date(100), "1234567890");
+		byte[] buff = Base64.decode(t.getEncoded());
+		byte[] j = t.getJid().toString().getBytes("UTF-8");
+		Assert.assertArrayEquals("Invalid JID section", j, Arrays.copyOfRange(buff, 1, 1 + j.length));
+
+		Token t2 = Token.parse(t.getEncoded());
+		Assert.assertEquals("JIDs do not match!", t.getJid(), t2.getJid());
+	}
 }
