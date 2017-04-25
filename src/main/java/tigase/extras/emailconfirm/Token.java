@@ -3,6 +3,7 @@ package tigase.extras.emailconfirm;
 import tigase.util.Base64;
 import tigase.xmpp.BareJID;
 
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Date;
@@ -52,7 +53,7 @@ public class Token {
 
 		Token result = new Token();
 		result.random = r;
-		result.jid = BareJID.bareJIDInstanceNS(j);
+		result.jid = BareJID.bareJIDInstanceNS(new String(Base64.decode(j), Charset.forName("UTF-8")));
 		result.timestamp = new Date(Long.parseLong(ts));
 		return result;
 	}
@@ -72,8 +73,9 @@ public class Token {
 		}
 
 		byte[] buff = Base64.decode(encodedToken);
-		if (buff == null || buff.length == 0)
+		if (buff == null || buff.length == 0) {
 			throw new RuntimeException("Invalid token");
+		}
 		byte tokenType = buff[0];
 		switch (tokenType) {
 			case 1:
@@ -84,14 +86,16 @@ public class Token {
 	}
 
 	protected byte[] getBuff() {
+		String j = Base64.encode(this.jid.toString().getBytes(Charset.forName("UTF-8")));
 		String ts = String.valueOf(timestamp.getTime());
-		int len = 1 + jid.toString().length() + 1 + ts.length() + 1 + random.length();
+
+		int len = 1 + j.length() + 1 + ts.length() + 1 + random.length();
 		byte[] buff = new byte[len];
 		buff[0] = 1; // token version/type
 		byte[] tmp;
 		int idx = 1;
 
-		tmp = jid.toString().getBytes();
+		tmp = j.getBytes();
 		System.arraycopy(tmp, 0, buff, idx, tmp.length);
 		idx += tmp.length;
 		buff[idx++] = 0;
