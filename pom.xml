@@ -16,13 +16,19 @@
 	<artifactId>tigase-extras</artifactId>
 	<name>Tigase Server Extras</name>
 	<version>1.2.0-SNAPSHOT</version>
-	<packaging>bundle</packaging>
+	<packaging>pom</packaging>
 	<description>Extra modules to Tigase Server.</description>
 	<url>http://www.tigase.org/</url>
 	<issueManagement>
 		<system>Redmine</system>
 		<url>https://projects.tigase.org/projects/tigase-extras</url>
 	</issueManagement>
+
+    <modules>
+        <module>base</module>
+        <module>mailer</module>
+    </modules>
+
 	<developers>
 		<developer>
 			<id>kobit</id>
@@ -137,25 +143,6 @@
 			</plugin>
 
 			<plugin>
-				<groupId>org.apache.felix</groupId>
-				<artifactId>maven-bundle-plugin</artifactId>
-				<version>2.4.0</version>
-				<extensions>true</extensions>
-				<configuration>
-					<instructions combine.inherited="append">
-						<manifestLocation>src/main/resources/META-INF/MANIFEST.MF</manifestLocation>
-						<Implementation-Title>${project.name}</Implementation-Title>
-						<Implementation-Version>${project.version}-b${gitVersion}/${buildNumber}</Implementation-Version>
-						<Implementation-Build>${gitVersion}/${buildNumber} (${maven.build.timestamp})</Implementation-Build>
-						<Bundle-Activator>tigase.extras.Activator</Bundle-Activator>
-						<Export-Package>tigase.extras.*,tigase.management.*</Export-Package>
-						<Embed-Dependency>jdmkrt</Embed-Dependency>
-						<Embed-Transitive>true</Embed-Transitive>
-					</instructions>
-				</configuration>
-			</plugin>
-
-			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>2.5.1</version>
@@ -180,10 +167,6 @@
 						</manifestEntries>
 					</archive>
 				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-release-plugin</artifactId>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -217,61 +200,8 @@
 			</plugin>			
 		</plugins>
 	</build>
-	<dependencies>
-		<dependency>
-			<groupId>tigase</groupId>
-			<artifactId>tigase-server</artifactId>
-			<version>7.2.0-SNAPSHOT</version>
-			<scope>compile</scope>
-		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.10</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>bouncycastle</groupId>
-			<artifactId>bcprov-jdk16</artifactId>
-			<version>136</version>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>openDMK</groupId>
-			<artifactId>jdmkrt</artifactId>
-			<version>1.0-b02</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.felix</groupId>
-			<artifactId>org.osgi.core</artifactId>
-			<version>1.4.0</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>javax.activation</groupId>
-			<artifactId>activation</artifactId>
-			<version>1.1.1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sun.mail</groupId>
-			<artifactId>javax.mail</artifactId>
-			<version>1.5.3</version>
-		</dependency>
-		<dependency>
-			<groupId>com.sun.mail</groupId>
-			<artifactId>smtp</artifactId>
-			<version>1.5.3</version>
-		</dependency>
-		<dependency>
-			<groupId>org.codehaus.groovy</groupId>
-			<artifactId>groovy-all</artifactId>
-			<version>2.4.5</version>
-			<scope>compile</scope>
-		</dependency>
-	</dependencies>
 	<repositories>
 		<repository>
-			<snapshots />
 			<id>tigase</id>
 			<name>Tigase repository</name>
 			<url>http://maven-repo.tigase.org/repository/release</url>
