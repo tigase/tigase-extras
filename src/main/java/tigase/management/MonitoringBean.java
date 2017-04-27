@@ -28,6 +28,8 @@ import com.sun.management.snmp.agent.SnmpMib;
 import tigase.conf.MonitoringBeanIfc;
 import tigase.kernel.beans.*;
 import tigase.kernel.beans.config.ConfigField;
+import tigase.kernel.beans.selector.ConfigType;
+import tigase.kernel.beans.selector.ConfigTypeEnum;
 import tigase.kernel.core.Kernel;
 
 import javax.management.MBeanServer;
@@ -48,6 +50,7 @@ import java.util.logging.Logger;
  * Created by andrzej on 13.10.2016.
  */
 @Bean(name = "monitoring", parent = Kernel.class, active = true)
+@ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.SessionManagerMode, ConfigTypeEnum.ConnectionManagersMode, ConfigTypeEnum.ComponentMode})
 public class MonitoringBean implements MonitoringBeanIfc, RegistrarBean {
 
 	@Inject(nullAllowed = true)
