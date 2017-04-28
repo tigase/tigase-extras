@@ -10,6 +10,7 @@
     </parent>
     <name>Tigase Server Extras Mailer</name>
     <artifactId>tigase-extras-mailer</artifactId>
+    <packaging>bundle</packaging>
     <url>http://maven.apache.org</url>
     <description>Sending mail</description>
     <properties>
@@ -70,26 +71,6 @@
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
                 <version>2.5.1</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>1.1</version>
-                <configuration>
-                    <timestampFormat>{0,date} {0,time}</timestampFormat>
-                    <doCheck>false</doCheck>
-                    <doUpdate>false</doUpdate>
-                    <shortRevisionLength>8</shortRevisionLength>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>create</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
 
             <plugin>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>tigase</groupId>
+        <artifactId>tigase-extras</artifactId>
+        <version>1.2.0-SNAPSHOT</version>
+    </parent>
+    <name>Tigase Server Extras All Modules</name>
+    <artifactId>tigase-extras-all</artifactId>
+    <packaging>pom</packaging>
+    <url>http://maven.apache.org</url>
+    <description>Sending mail</description>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>tigase</groupId>
+            <artifactId>tigase-extras-base</artifactId>
+            <version>1.2.0-SNAPSHOT</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>tigase</groupId>
+            <artifactId>tigase-extras-mailer</artifactId>
+            <version>1.2.0-SNAPSHOT</version>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+</project>
