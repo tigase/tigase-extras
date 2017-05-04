@@ -12,7 +12,7 @@
     <artifactId>tigase-extras-all</artifactId>
     <packaging>pom</packaging>
     <url>http://maven.apache.org</url>
-    <description>Sending mail</description>
+    <description>All projects</description>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
