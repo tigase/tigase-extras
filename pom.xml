@@ -26,6 +26,7 @@
 
     <modules>
         <module>base</module>
+        <module>mailsender</module>
         <module>mailer</module>
         <module>all</module>
     </modules>

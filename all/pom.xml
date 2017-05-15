@@ -19,15 +19,21 @@
 
     <dependencies>
         <dependency>
-            <groupId>tigase</groupId>
-            <artifactId>tigase-extras-base</artifactId>
-            <version>1.2.0-SNAPSHOT</version>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tigase-extras-mailsender</artifactId>
+            <version>${project.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>tigase</groupId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tigase-extras-base</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>tigase-extras-mailer</artifactId>
-            <version>1.2.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>runtime</scope>
         </dependency>
     </dependencies>
