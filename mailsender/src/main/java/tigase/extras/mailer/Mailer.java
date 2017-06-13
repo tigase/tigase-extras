@@ -21,16 +21,16 @@ public class Mailer
 		implements Initializable {
 
 	protected final Logger log = Logger.getLogger(this.getClass().getName());
-	@ConfigField(desc = "Default sender address (field 'from'")
+	@ConfigField(desc = "Default sender address (field 'from'", alias = "mailer-from-address")
 	private String fromAddress;
 	private Session session;
-	@ConfigField(desc = "SMTP host")
+	@ConfigField(desc = "SMTP host", alias = "mailer-smtp-host")
 	private String smtpHost;
-	@ConfigField(desc = "SMTP password")
+	@ConfigField(desc = "SMTP password", alias = "mailer-smtp-password")
 	private String smtpPassword;
-	@ConfigField(desc = "SMTP port")
+	@ConfigField(desc = "SMTP port", alias = "mailer-smtp-port")
 	private String smtpPort = "587";
-	@ConfigField(desc = "SMTP username")
+	@ConfigField(desc = "SMTP username", alias = "mailer-smtp-username")
 	private String smtpUsername;
 
 	@Override
