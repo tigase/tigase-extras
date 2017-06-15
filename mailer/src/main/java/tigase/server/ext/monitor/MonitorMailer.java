@@ -6,6 +6,8 @@ import tigase.extras.mailer.Mailer;
 import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.Inject;
+import tigase.kernel.beans.UnregisterAware;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.monitor.MonitorComponent;
 import tigase.monitor.MonitorExtension;
 import tigase.xml.Element;
@@ -16,7 +18,7 @@ import java.util.logging.Logger;
 
 @Bean(name = "monitor-mailer", active = true, exportable = true)
 public class MonitorMailer
-		implements MonitorExtension, Initializable {
+		implements MonitorExtension, Initializable, UnregisterAware {
 
 	private final static String REMOTE_EVENT_INDICATOR = "remote";
 	private final Logger log = Logger.getLogger(this.getClass().getName());
@@ -26,9 +28,11 @@ public class MonitorMailer
 	@Inject
 	private EventBus eventBus;
 
-	private String fromAddress;
+	@ConfigField(desc = "Email notification sender", alias = "from-address")
+	private String fromAddress = null;
 	@Inject
 	private Mailer mailSender;
+	@ConfigField(desc = "Email notification recipients", alias = "to-addresses")
 	private String toAddresses;
 	private final EventListener<Element> handler = new EventListener<Element>() {
 		@Override
@@ -50,6 +54,11 @@ public class MonitorMailer
 		this.eventBus = eventBus;
 	}
 
+	@Override
+	public void beforeUnregister() {
+		eventBus.removeListener(handler);
+	}
+
 	private String getRequiredProp(Map<String, Object> props, String name) {
 		String result;
 		try {
@@ -68,6 +77,8 @@ public class MonitorMailer
 
 	@Override
 	public void initialize() {
+		log.config("Initializing Monitor Mailer");
+		eventBus.addListener("tigase.monitor.tasks", null, handler);
 	}
 
 	protected void onEvent(final String name, final String xmlns, final Element event) {
@@ -118,8 +129,6 @@ public class MonitorMailer
 			return;
 		}
 
-		log.config("Initializing Monitor Mailer");
-		eventBus.addListener("tigase.monitor.tasks", null, handler);
 	}
 
 }
