@@ -94,7 +94,7 @@ public class MonitorMailer
 		sb.append("hostname: ").append(component.getDefHostName()).append('\n');
 
 		if ("SampleTaskEnabled".equals(name)) {
-			String t = event.getCData(new String[]{"SampleTaskEnabled", "message"});
+			String t = event.getCData(new String[]{"tigase.monitor.tasks.SampleTaskEnabled", "message"});
 			subject += " - " + t;
 			sb.append("This is notification from sample monitor task.").append('\n');
 			for (Element c : event.getChildren()) {
