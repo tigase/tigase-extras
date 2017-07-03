@@ -25,17 +25,21 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMReader;
 import org.bouncycastle.openssl.PasswordFinder;
 import tigase.io.CertificateContainerIfc;
-import static tigase.io.SSLContextContainerIfc.*;
+import tigase.kernel.beans.config.ConfigField;
 
 import javax.net.ssl.*;
 import java.io.*;
 import java.security.*;
-import java.security.Certificate;
 import java.security.cert.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static tigase.io.SSLContextContainerIfc.*;
 
 /**
  * Created by andrzej on 02.03.2016.
@@ -59,7 +63,8 @@ public class PEMCertificateContainer implements CertificateContainerIfc {
 	 * Path to directory with CA certificates.<br/>
 	 * In most Linux systems it may be: <code>/etc/ssl/certs</code>.
 	 */
-	private String caCertsPath = "";
+	@ConfigField(desc = "CA certs path", alias = TRUSTED_CERTS_DIR_KEY)
+	private String caCertsPath = TRUSTED_CERTS_DIR_VAL;
 
 	/**
 	 * Used in SSL connections when domain is don't known yet
@@ -78,6 +83,7 @@ public class PEMCertificateContainer implements CertificateContainerIfc {
 	 * <li><code>malkowscy.net.pem</code></li>
 	 * </ul>
 	 */
+	@ConfigField(desc = "", alias = DEFAULT_DOMAIN_CERT_KEY)
 	private String domainKeysPath           = "";
 	private String internalKeystorePassword = "";
 
@@ -87,10 +93,12 @@ public class PEMCertificateContainer implements CertificateContainerIfc {
 	 * When private keys are encrypted, they MUST be encrypted with one
 	 * passphrase!
 	 */
+	@ConfigField(desc = "PEM Private Key password", alias = PEM_PRIVATE_PWD_KEY)
 	private String privateKeyPassphrase         = "";
 	private TrustManager[] defTrustManagers     = new X509TrustManager[] {
 			new DummyTrustManager() };
-	private TrustModel trustModel               = TrustModel.all;
+	@ConfigField(desc = "SSL certificate trust model", alias = "ssl-trust-model")
+	private TrustModel trustModel               = TrustModel.selfsigned;
 	private KeyStore trustKeyStore;
 	private TrustManagerFactory trustManagerFactory;
 
@@ -98,6 +106,7 @@ public class PEMCertificateContainer implements CertificateContainerIfc {
 
 	public PEMCertificateContainer() {
 		Security.addProvider(new BouncyCastleProvider());
+		setTrustModel(TrustModel.trusted);
 	}
 
 	@Override
@@ -181,6 +190,11 @@ public class PEMCertificateContainer implements CertificateContainerIfc {
 			log.log(Level.SEVERE, "Error on initialization", e);
 		}
 
+		setTrustModel(trustModel);
+	}
+
+	public void setTrustModel(TrustModel model) {
+		this.trustModel = model;
 		switch (trustModel) {
 			case all :
 				defTrustManagers = new TrustManager[] { new DummyTrustManager() };
