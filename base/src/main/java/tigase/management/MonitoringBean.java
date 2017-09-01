@@ -49,7 +49,7 @@ import java.util.logging.Logger;
 /**
  * Created by andrzej on 13.10.2016.
  */
-@Bean(name = "monitoring", parent = Kernel.class, active = true)
+@Bean(name = "monitoring", parent = Kernel.class, active = true, exportable = true)
 @ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.SessionManagerMode, ConfigTypeEnum.ConnectionManagersMode, ConfigTypeEnum.ComponentMode})
 public class MonitoringBean implements MonitoringBeanIfc, RegistrarBean {
 
