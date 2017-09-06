@@ -29,6 +29,7 @@
         <module>mailsender</module>
         <module>mailer</module>
 		<module>mongodb</module>
+        <module>bcstarttls</module>
         <module>all</module>
     </modules>
 
