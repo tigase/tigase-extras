@@ -28,6 +28,7 @@
         <module>base</module>
         <module>mailsender</module>
         <module>mailer</module>
+		<module>mongodb</module>
         <module>all</module>
     </modules>
 
