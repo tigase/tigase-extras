@@ -7,6 +7,7 @@
  */
 package tigase.extras.mongodb.push;
 
+import com.mongodb.Block;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -14,7 +15,6 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.Projections;
 import org.bson.Document;
-import org.bson.types.Binary;
 import tigase.component.exceptions.ComponentException;
 import tigase.component.exceptions.RepositoryException;
 import tigase.db.Repository;
@@ -32,7 +32,9 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static tigase.mongodb.Helper.collectionExists;
 
@@ -140,22 +142,29 @@ public class MongoPushRepository
 	}
 
 	@Override
-	public IPushSettings getNodeSettings(String provider, String deviceId) throws RepositoryException {
+	public Stream<IPushSettings> getNodeSettings(String provider, String deviceId) throws RepositoryException {
 		try {
-			Document doc = pushDevicesCollection.find(
-					Filters.and(Filters.eq(PROVIDER, provider), Filters.eq(DEVICE_ID_ID, calculateHash(deviceId))))
-					.projection(Projections.include(SERVICE_JID, SERVICE_JID_ID, NODE, NODE_ID))
-					.limit(1)
-					.first();
-			if (doc == null) {
-				return null;
-			}
-			BareJID serviceJid = BareJID.bareJIDInstanceNS(doc.getString(SERVICE_JID));
-			byte[] serviceJidId = ((Binary) doc.get(SERVICE_JID_ID)).getData();
-			String node = doc.getString(NODE);
-			byte[] nodeId = ((Binary) doc.get(NODE_ID)).getData();
+			List<IPushSettings> settings = new ArrayList<>();
 
-			return getNodeSettings(serviceJid, node, serviceJidId, nodeId);
+			pushDevicesCollection.find(
+					Filters.and(Filters.eq(PROVIDER, provider), Filters.eq(DEVICE_ID_ID, calculateHash(deviceId))))
+					.projection(Projections.include(SERVICE_JID, NODE, USER_JID, PROVIDER, DEVICE_ID)).forEach(
+					(Block<? super Document>) doc -> {
+						BareJID serviceJid = BareJID.bareJIDInstanceNS(doc.getString(SERVICE_JID));
+						BareJID ownerJid = BareJID.bareJIDInstanceNS(doc.getString(USER_JID));
+						String node = doc.getString(NODE);
+
+						IPushSettings entry = settings.stream()
+								.filter(it -> it.getServiceJid().equals(serviceJid) &&
+										it.getOwenerJid().equals(ownerJid) && it.getNode().equals(node))
+								.findFirst()
+								.orElseGet(() -> new PushSettings(serviceJid, node, ownerJid, Collections.emptyList()));
+
+						settings.remove(entry);
+						settings.add(entry.addDevice(new Device(doc.getString(PROVIDER), doc.getString(DEVICE_ID))));
+					});
+
+			return settings.stream();
 		} catch (Exception e) {
 			throw new RepositoryException("Could not retrieve setting by service jid and node", e);
 		}
