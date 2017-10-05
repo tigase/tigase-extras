@@ -95,5 +95,10 @@
             <artifactId>tigase-extras-mailsender</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>tigase-extras-bcstarttls</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>
