@@ -1,13 +1,10 @@
 package tigase.extras.emailconfirm;
 
-import groovy.lang.Writable;
-import groovy.text.SimpleTemplateEngine;
-import groovy.text.Template;
 import tigase.component.exceptions.RepositoryException;
 import tigase.db.AuthRepository;
 import tigase.db.UserRepository;
 import tigase.eventbus.EventBus;
-import tigase.extras.mailer.Mailer;
+import tigase.extras.AbstractEmailSender;
 import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.Inject;
@@ -15,12 +12,12 @@ import tigase.kernel.beans.UnregisterAware;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.kernel.core.Kernel;
 import tigase.util.DNSResolverFactory;
+import tigase.util.Token;
 import tigase.xmpp.Authorization;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.XMPPProcessorException;
 import tigase.xmpp.impl.JabberIqRegister;
 
-import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -31,26 +28,24 @@ import java.util.logging.Logger;
  */
 
 @Bean(name = "account-registration-email-validator", parent = Kernel.class, active = false, exportable = true)
-public class EmailConfirmationSender
+public class EmailConfirmationSender extends AbstractEmailSender
 		implements JabberIqRegister.AccountValidator, Initializable, UnregisterAware {
 
 	public static final String EMAIL_CONFIRMATION_TOKEN_KEY = "email-confirmation-token";
 	protected final Logger log = Logger.getLogger(this.getClass().getName());
-	@Inject
-	private EventBus eventBus;
-	@Inject
-	private Mailer mailer;
-	private SimpleTemplateEngine ste = new SimpleTemplateEngine();
-	@ConfigField(desc = "Notification email subject")
-	private String subject = "Email confirmation";
-	@ConfigField(desc = "Email template file")
-	private String templateFile = "mails/email-confirmation.template";
 	@ConfigField(desc = "URL of token verifier")
 	private String tokenVerifierURL = "http://" + DNSResolverFactory.getInstance().getDefaultHost() + ":8080/rest/user/confirm/";
+
+	@Inject
+	private EventBus eventBus;
 	@Inject
 	private AuthRepository authRepository;
 	@Inject
 	private UserRepository userRepository;
+
+	public EmailConfirmationSender() {
+		super("Email confirmation", "mails/email-confirmation.template");
+	}
 
 	@Override
 	public void beforeUnregister() {
@@ -94,32 +89,6 @@ public class EmailConfirmationSender
 			throw new RuntimeException("Internal Server Error", ex);
 		}
 	}
-
-	private String load(final String file) throws IOException {
-		File f = new File(file);
-		InputStream is = null;
-		if (f.exists()) {
-			is = new FileInputStream(new File(file));
-		} else {
-			is = getClass().getResourceAsStream("/" + file);
-		}
-		if (is == null) {
-			throw new IOException("Resource not found");
-		}
-
-		char[] buf = new char[1024];
-		StringBuilder sb = new StringBuilder();
-		Reader r = new InputStreamReader(is);
-		try {
-			int read;
-			while ((read = r.read(buf)) > -1) {
-				sb.append(buf, 0, read);
-			}
-		} finally {
-			r.close();
-		}
-		return sb.toString();
-	}
 	
 	public void sendToken(BareJID bareJID, String email, Map<String, String> req_params) {
 
@@ -139,9 +108,7 @@ public class EmailConfirmationSender
 		bindings.put("tokenVerifierURL", tokenVerifierURL);
 
 		try {
-			Template template = ste.createTemplate(load(templateFile));
-			Writable w = template.make(bindings);
-			mailer.sendMail(email, subject, w.toString());
+			sendMail(email, bindings);
 		} catch (Exception e) {
 			log.log(Level.WARNING, "Cannot send confirmation mail", e);
 		}
