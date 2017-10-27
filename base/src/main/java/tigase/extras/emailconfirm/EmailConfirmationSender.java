@@ -11,10 +11,10 @@ import tigase.kernel.beans.Inject;
 import tigase.kernel.beans.UnregisterAware;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.kernel.core.Kernel;
-import tigase.util.DNSResolverFactory;
+import tigase.util.dns.DNSResolverFactory;
 import tigase.util.Token;
 import tigase.xmpp.Authorization;
-import tigase.xmpp.BareJID;
+import tigase.xmpp.jid.BareJID;
 import tigase.xmpp.XMPPProcessorException;
 import tigase.xmpp.impl.JabberIqRegister;
 

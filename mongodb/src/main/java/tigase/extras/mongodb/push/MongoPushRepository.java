@@ -26,7 +26,7 @@ import tigase.push.api.IPushSettings;
 import tigase.push.repositories.AbstractPushRepository;
 import tigase.push.repositories.Schema;
 import tigase.xmpp.Authorization;
-import tigase.xmpp.BareJID;
+import tigase.xmpp.jid.BareJID;
 
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
