@@ -22,6 +22,7 @@ package tigase.extras.mongodb;
 
 import tigase.osgi.AbstractActivator;
 
-public class Activator extends AbstractActivator {
+public class Activator
+		extends AbstractActivator {
 
 }

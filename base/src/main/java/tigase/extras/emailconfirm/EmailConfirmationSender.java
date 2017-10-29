@@ -31,12 +31,12 @@ import tigase.kernel.beans.Inject;
 import tigase.kernel.beans.UnregisterAware;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.kernel.core.Kernel;
-import tigase.util.dns.DNSResolverFactory;
 import tigase.util.Token;
+import tigase.util.dns.DNSResolverFactory;
 import tigase.xmpp.Authorization;
-import tigase.xmpp.jid.BareJID;
 import tigase.xmpp.XMPPProcessorException;
 import tigase.xmpp.impl.JabberIqRegister;
+import tigase.xmpp.jid.BareJID;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -48,18 +48,19 @@ import java.util.logging.Logger;
  */
 
 @Bean(name = "account-registration-email-validator", parent = Kernel.class, active = false, exportable = true)
-public class EmailConfirmationSender extends AbstractEmailSender
+public class EmailConfirmationSender
+		extends AbstractEmailSender
 		implements JabberIqRegister.AccountValidator, Initializable, UnregisterAware {
 
 	public static final String EMAIL_CONFIRMATION_TOKEN_KEY = "email-confirmation-token";
 	protected final Logger log = Logger.getLogger(this.getClass().getName());
-	@ConfigField(desc = "URL of token verifier")
-	private String tokenVerifierURL = "http://" + DNSResolverFactory.getInstance().getDefaultHost() + ":8080/rest/user/confirm/";
-
-	@Inject
-	private EventBus eventBus;
 	@Inject
 	private AuthRepository authRepository;
+	@Inject
+	private EventBus eventBus;
+	@ConfigField(desc = "URL of token verifier")
+	private String tokenVerifierURL =
+			"http://" + DNSResolverFactory.getInstance().getDefaultHost() + ":8080/rest/user/confirm/";
 	@Inject
 	private UserRepository userRepository;
 
@@ -109,7 +110,7 @@ public class EmailConfirmationSender extends AbstractEmailSender
 			throw new RuntimeException("Internal Server Error", ex);
 		}
 	}
-	
+
 	public void sendToken(BareJID bareJID, String email, Map<String, String> req_params) {
 
 		Token token = Token.create(bareJID);

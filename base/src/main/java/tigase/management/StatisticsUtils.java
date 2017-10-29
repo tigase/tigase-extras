@@ -23,14 +23,13 @@ package tigase.management;
 //~--- non-JDK imports --------------------------------------------------------
 
 import tigase.conf.ConfiguratorAbstract;
-
 import tigase.stats.StatisticsProviderMBean;
 
-import static tigase.management.StatisticsConstatnts.*;
+import java.util.Map;
+
+import static tigase.management.StatisticsConstatnts.STATS_MXBEAN_NAME;
 
 //~--- JDK imports ------------------------------------------------------------
-
-import java.util.Map;
 
 //~--- classes ----------------------------------------------------------------
 
@@ -44,7 +43,6 @@ public class StatisticsUtils {
 
 	/**
 	 * Method description
-	 *
 	 *
 	 * @param comp
 	 * @param stat
@@ -68,7 +66,6 @@ public class StatisticsUtils {
 	/**
 	 * Method description
 	 *
-	 *
 	 * @param comp
 	 * @param stat
 	 * @param def
@@ -76,8 +73,7 @@ public class StatisticsUtils {
 	 * @return
 	 */
 	public static String getStatsValue(String comp, String stat, String def) {
-		StatisticsProviderMBean stats =
-			(StatisticsProviderMBean) ConfiguratorAbstract.getMXBean(STATS_MXBEAN_NAME);
+		StatisticsProviderMBean stats = (StatisticsProviderMBean) ConfiguratorAbstract.getMXBean(STATS_MXBEAN_NAME);
 		String result = null;
 
 		if (stats != null) {
@@ -92,8 +88,6 @@ public class StatisticsUtils {
 	}
 }
 
-
 //~ Formatted in Sun Code Convention
-
 
 //~ Formatted by Jindent --- http://www.jindent.com

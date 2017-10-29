@@ -79,26 +79,27 @@ public class MonitorMailer
 		eventBus.removeListener(handler);
 	}
 
-	private String getRequiredProp(Map<String, Object> props, String name) {
-		String result;
-		try {
-			result = (String) props.get(name);
-		} catch (Exception e) {
-			result = null;
-			log.warning("Problem on reading property '" + name + "'");
-		}
-
-		if (result == null) {
-			throw new RuntimeException("Property '" + name + "' is not defined!");
-		}
-
-		return result;
-	}
-
 	@Override
 	public void initialize() {
 		log.config("Initializing Monitor Mailer");
 		eventBus.addListener("tigase.monitor.tasks", null, handler);
+	}
+
+	@Override
+	public void setProperties(Map<String, Object> props) {
+		log.config("Configuring Monitor Mailer");
+		try {
+			this.fromAddress = getRequiredProp(props, "mailer-from-address");
+			log.log(Level.CONFIG, "Setting fromAddress: {0}", fromAddress);
+			this.toAddresses = getRequiredProp(props, "mailer-to-addresses");
+			log.log(Level.CONFIG, "Setting toAddresses: {0}", toAddresses);
+
+		} catch (RuntimeException e) {
+			log.warning(e.getMessage());
+			log.warning("Mailer is not started");
+			return;
+		}
+
 	}
 
 	protected void onEvent(final String name, final String xmlns, final Element event) {
@@ -130,25 +131,24 @@ public class MonitorMailer
 		sendMail(subject, sb.toString());
 	}
 
-	private void sendMail(String messageSubject, String messageText) {
-		mailSender.sendMail(fromAddress, toAddresses, messageSubject, messageText);
-	}
-
-	@Override
-	public void setProperties(Map<String, Object> props) {
-		log.config("Configuring Monitor Mailer");
+	private String getRequiredProp(Map<String, Object> props, String name) {
+		String result;
 		try {
-			this.fromAddress = getRequiredProp(props, "mailer-from-address");
-			log.log(Level.CONFIG, "Setting fromAddress: {0}", fromAddress);
-			this.toAddresses = getRequiredProp(props, "mailer-to-addresses");
-			log.log(Level.CONFIG, "Setting toAddresses: {0}", toAddresses);
-
-		} catch (RuntimeException e) {
-			log.warning(e.getMessage());
-			log.warning("Mailer is not started");
-			return;
+			result = (String) props.get(name);
+		} catch (Exception e) {
+			result = null;
+			log.warning("Problem on reading property '" + name + "'");
 		}
 
+		if (result == null) {
+			throw new RuntimeException("Property '" + name + "' is not defined!");
+		}
+
+		return result;
+	}
+
+	private void sendMail(String messageSubject, String messageText) {
+		mailSender.sendMail(fromAddress, toAddresses, messageSubject, messageText);
 	}
 
 }

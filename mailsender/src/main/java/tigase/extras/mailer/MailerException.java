@@ -23,7 +23,8 @@ package tigase.extras.mailer;
 /**
  * Created by bmalkow on 21.04.2017.
  */
-public class MailerException extends RuntimeException {
+public class MailerException
+		extends RuntimeException {
 
 	public MailerException() {
 	}

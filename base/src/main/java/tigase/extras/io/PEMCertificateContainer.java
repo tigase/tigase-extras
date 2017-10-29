@@ -144,16 +144,6 @@ public class PEMCertificateContainer
 		return defaultHostname;
 	}
 
-	private String getFromMap(Map<String, Object> params, String key, String defaultVal) {
-		if (params.containsKey(key)) {
-			return (String) params.get(key);
-		} else {
-			params.put(key, defaultVal);
-
-			return defaultVal;
-		}
-	}
-
 	@Override
 	public KeyManager[] getKeyManagers(String hostname) {
 		KeyManagerFactory kmf = this.kmfs.get(hostname);
@@ -215,6 +205,36 @@ public class PEMCertificateContainer
 		}
 
 		setTrustModel(trustModel);
+	}
+
+	public void setTrustModel(TrustModel model) {
+		this.trustModel = model;
+		switch (trustModel) {
+			case all:
+				defTrustManagers = new TrustManager[]{new DummyTrustManager()};
+				break;
+
+			case selfsigned:
+				defTrustManagers = new TrustManager[]{new SelfSignedTrustManager(trustKeyStore)};
+				break;
+
+			case trusted:
+				defTrustManagers = trustManagerFactory.getTrustManagers();
+				break;
+
+			default:
+				throw new RuntimeException("Unknown trust model: " + trustModel);
+		}
+	}
+
+	private String getFromMap(Map<String, Object> params, String key, String defaultVal) {
+		if (params.containsKey(key)) {
+			return (String) params.get(key);
+		} else {
+			params.put(key, defaultVal);
+
+			return defaultVal;
+		}
 	}
 
 	private void init() throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException,
@@ -349,26 +369,6 @@ public class PEMCertificateContainer
 			if (reader != null) {
 				reader.close();
 			}
-		}
-	}
-
-	public void setTrustModel(TrustModel model) {
-		this.trustModel = model;
-		switch (trustModel) {
-			case all:
-				defTrustManagers = new TrustManager[]{new DummyTrustManager()};
-				break;
-
-			case selfsigned:
-				defTrustManagers = new TrustManager[]{new SelfSignedTrustManager(trustKeyStore)};
-				break;
-
-			case trusted:
-				defTrustManagers = trustManagerFactory.getTrustManagers();
-				break;
-
-			default:
-				throw new RuntimeException("Unknown trust model: " + trustModel);
 		}
 	}
 

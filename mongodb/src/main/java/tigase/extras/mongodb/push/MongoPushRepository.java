@@ -53,7 +53,7 @@ import static tigase.mongodb.Helper.collectionExists;
 /**
  * Created by andrzej on 16.05.2017.
  */
-@Repository.Meta( supportedUris = {"mongodb:.*" } )
+@Repository.Meta(supportedUris = {"mongodb:.*"})
 @Repository.SchemaId(id = Schema.PUSH_SCHEMA_ID, name = Schema.PUSH_SCHEMA_NAME)
 public class MongoPushRepository
 		extends AbstractPushRepository<MongoDataSource> {
@@ -72,7 +72,6 @@ public class MongoPushRepository
 	private static final String PROVIDER = "provider";
 	private static final String DEVICE_ID = "device_id";
 	private static final String DEVICE_ID_ID = "device_id_id";
-
 
 	private MongoDatabase db;
 	private MongoCollection<Document> pushDevicesCollection;
@@ -160,8 +159,8 @@ public class MongoPushRepository
 
 			pushDevicesCollection.find(
 					Filters.and(Filters.eq(PROVIDER, provider), Filters.eq(DEVICE_ID_ID, calculateHash(deviceId))))
-					.projection(Projections.include(SERVICE_JID, NODE, USER_JID, PROVIDER, DEVICE_ID)).forEach(
-					(Block<? super Document>) doc -> {
+					.projection(Projections.include(SERVICE_JID, NODE, USER_JID, PROVIDER, DEVICE_ID))
+					.forEach((Block<? super Document>) doc -> {
 						BareJID serviceJid = BareJID.bareJIDInstanceNS(doc.getString(SERVICE_JID));
 						BareJID ownerJid = BareJID.bareJIDInstanceNS(doc.getString(USER_JID));
 						String node = doc.getString(NODE);
@@ -201,8 +200,9 @@ public class MongoPushRepository
 	private IPushSettings getNodeSettings(BareJID serviceJid, String node, byte[] serviceJidId, byte[] nodeId) {
 		BareJID userJid = null;
 		List<IPushSettings.IDevice> devices = new ArrayList<>();
-		for (Document doc : pushDevicesCollection.find(Filters.and(Filters.eq(SERVICE_JID_ID, serviceJidId), Filters.eq(NODE_ID, nodeId))).projection(
-				Projections.include(USER_JID, PROVIDER, DEVICE_ID))) {
+		for (Document doc : pushDevicesCollection.find(
+				Filters.and(Filters.eq(SERVICE_JID_ID, serviceJidId), Filters.eq(NODE_ID, nodeId)))
+				.projection(Projections.include(USER_JID, PROVIDER, DEVICE_ID))) {
 			userJid = BareJID.bareJIDInstanceNS(doc.getString(USER_JID));
 			devices.add(new Device(doc.getString(PROVIDER), doc.getString(DEVICE_ID)));
 		}

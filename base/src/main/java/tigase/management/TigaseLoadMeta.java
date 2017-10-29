@@ -26,527 +26,499 @@ package tigase.management;
 
 // java imports
 //
+
+import com.sun.management.snmp.SnmpGauge;
+import com.sun.management.snmp.SnmpStatusException;
+import com.sun.management.snmp.SnmpValue;
+import com.sun.management.snmp.agent.*;
+
+import javax.management.MBeanServer;
 import java.io.Serializable;
 
 // jmx imports
 //
-import javax.management.MBeanServer;
-import com.sun.management.snmp.SnmpCounter;
-import com.sun.management.snmp.SnmpCounter64;
-import com.sun.management.snmp.SnmpGauge;
-import com.sun.management.snmp.SnmpInt;
-import com.sun.management.snmp.SnmpUnsignedInt;
-import com.sun.management.snmp.SnmpIpAddress;
-import com.sun.management.snmp.SnmpTimeticks;
-import com.sun.management.snmp.SnmpOpaque;
-import com.sun.management.snmp.SnmpString;
-import com.sun.management.snmp.SnmpStringFixed;
-import com.sun.management.snmp.SnmpOid;
-import com.sun.management.snmp.SnmpNull;
-import com.sun.management.snmp.SnmpValue;
-import com.sun.management.snmp.SnmpVarBind;
-import com.sun.management.snmp.SnmpStatusException;
-
 // jdmk imports
 //
-import com.sun.management.snmp.agent.SnmpMib;
-import com.sun.management.snmp.agent.SnmpMibGroup;
-import com.sun.management.snmp.agent.SnmpStandardObjectServer;
-import com.sun.management.snmp.agent.SnmpStandardMetaServer;
-import com.sun.management.snmp.agent.SnmpMibSubRequest;
-import com.sun.management.snmp.agent.SnmpMibTable;
-import com.sun.management.snmp.EnumRowStatus;
-import com.sun.management.snmp.SnmpDefinitions;
 
 /**
- * The class is used for representing SNMP metadata for the "TigaseLoad" group.
- * The group is defined with the following oid: 1.3.6.1.4.1.16120609.2.145.3.163.1.1.3.
+ * The class is used for representing SNMP metadata for the "TigaseLoad" group. The group is defined with the following
+ * oid: 1.3.6.1.4.1.16120609.2.145.3.163.1.1.3.
  */
-public class TigaseLoadMeta extends SnmpMibGroup
-     implements Serializable, SnmpStandardMetaServer {
-
-    /**
-     * Constructor for the metadata associated to "TigaseLoad".
-     */
-    public TigaseLoadMeta(SnmpMib myMib, SnmpStandardObjectServer objserv) {
-        objectserver = objserv;
-        try {
-            registerObject(19);
-            registerObject(18);
-            registerObject(17);
-            registerObject(16);
-            registerObject(15);
-            registerObject(14);
-            registerObject(13);
-            registerObject(12);
-            registerObject(11);
-            registerObject(10);
-            registerObject(9);
-            registerObject(8);
-            registerObject(7);
-            registerObject(6);
-            registerObject(5);
-            registerObject(4);
-            registerObject(3);
-            registerObject(2);
-            registerObject(1);
-            registerObject(21);
-            registerObject(20);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e.getMessage());
-        }
-    }
-
-    /**
-     * Get the value of a scalar variable
-     */
-    public SnmpValue get(long var, Object data)
-        throws SnmpStatusException {
-        switch((int)var) {
-            case 19:
-                return new SnmpGauge(node.getTigaseLoadBoshLastSecond());
-
-            case 18:
-                return new SnmpGauge(node.getTigaseLoadC2SLastHour());
-
-            case 17:
-                return new SnmpGauge(node.getTigaseLoadC2SLastMinute());
-
-            case 16:
-                return new SnmpGauge(node.getTigaseLoadC2SLastSecond());
-
-            case 15:
-                return new SnmpGauge(node.getTigaseLoadS2SLastHour());
-
-            case 14:
-                return new SnmpGauge(node.getTigaseLoadS2SLastMinute());
-
-            case 13:
-                return new SnmpGauge(node.getTigaseLoadS2SLastSecond());
-
-            case 12:
-                return new SnmpGauge(node.getTigaseLoadPubSubLastHour());
-
-            case 11:
-                return new SnmpGauge(node.getTigaseLoadPubSubLastMinute());
-
-            case 10:
-                return new SnmpGauge(node.getTigaseLoadPubSubLastSecond());
-
-            case 9:
-                return new SnmpGauge(node.getTigaseLoadMUCLastHour());
-
-            case 8:
-                return new SnmpGauge(node.getTigaseLoadMUCLastMinute());
+public class TigaseLoadMeta
+		extends SnmpMibGroup
+		implements Serializable, SnmpStandardMetaServer {
+
+	protected TigaseLoadMBean node;
+	protected SnmpStandardObjectServer objectserver = null;
+
+	/**
+	 * Constructor for the metadata associated to "TigaseLoad".
+	 */
+	public TigaseLoadMeta(SnmpMib myMib, SnmpStandardObjectServer objserv) {
+		objectserver = objserv;
+		try {
+			registerObject(19);
+			registerObject(18);
+			registerObject(17);
+			registerObject(16);
+			registerObject(15);
+			registerObject(14);
+			registerObject(13);
+			registerObject(12);
+			registerObject(11);
+			registerObject(10);
+			registerObject(9);
+			registerObject(8);
+			registerObject(7);
+			registerObject(6);
+			registerObject(5);
+			registerObject(4);
+			registerObject(3);
+			registerObject(2);
+			registerObject(1);
+			registerObject(21);
+			registerObject(20);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e.getMessage());
+		}
+	}
+
+	/**
+	 * Get the value of a scalar variable
+	 */
+	public SnmpValue get(long var, Object data) throws SnmpStatusException {
+		switch ((int) var) {
+			case 19:
+				return new SnmpGauge(node.getTigaseLoadBoshLastSecond());
+
+			case 18:
+				return new SnmpGauge(node.getTigaseLoadC2SLastHour());
+
+			case 17:
+				return new SnmpGauge(node.getTigaseLoadC2SLastMinute());
+
+			case 16:
+				return new SnmpGauge(node.getTigaseLoadC2SLastSecond());
+
+			case 15:
+				return new SnmpGauge(node.getTigaseLoadS2SLastHour());
+
+			case 14:
+				return new SnmpGauge(node.getTigaseLoadS2SLastMinute());
+
+			case 13:
+				return new SnmpGauge(node.getTigaseLoadS2SLastSecond());
+
+			case 12:
+				return new SnmpGauge(node.getTigaseLoadPubSubLastHour());
+
+			case 11:
+				return new SnmpGauge(node.getTigaseLoadPubSubLastMinute());
+
+			case 10:
+				return new SnmpGauge(node.getTigaseLoadPubSubLastSecond());
+
+			case 9:
+				return new SnmpGauge(node.getTigaseLoadMUCLastHour());
 
-            case 7:
-                return new SnmpGauge(node.getTigaseLoadMUCLastSecond());
+			case 8:
+				return new SnmpGauge(node.getTigaseLoadMUCLastMinute());
 
-            case 6:
-                return new SnmpGauge(node.getTigaseLoadMRLastHour());
-
-            case 5:
-                return new SnmpGauge(node.getTigaseLoadMRLastMinute());
-
-            case 4:
-                return new SnmpGauge(node.getTigaseLoadMRLastSecond());
-
-            case 3:
-                return new SnmpGauge(node.getTigaseLoadSMLastHour());
-
-            case 2:
-                return new SnmpGauge(node.getTigaseLoadSMLastMinute());
-
-            case 1:
-                return new SnmpGauge(node.getTigaseLoadSMLastSecond());
-
-            case 21:
-                return new SnmpGauge(node.getTigaseLoadBoshLastHour());
-
-            case 20:
-                return new SnmpGauge(node.getTigaseLoadBoshLastMinute());
+			case 7:
+				return new SnmpGauge(node.getTigaseLoadMUCLastSecond());
 
-            default:
-                break;
-        }
-        throw new SnmpStatusException(SnmpStatusException.noSuchObject);
-    }
+			case 6:
+				return new SnmpGauge(node.getTigaseLoadMRLastHour());
+
+			case 5:
+				return new SnmpGauge(node.getTigaseLoadMRLastMinute());
 
-    /**
-     * Set the value of a scalar variable
-     */
-    public SnmpValue set(SnmpValue x, long var, Object data)
-        throws SnmpStatusException {
-        switch((int)var) {
-            case 19:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 4:
+				return new SnmpGauge(node.getTigaseLoadMRLastSecond());
+
+			case 3:
+				return new SnmpGauge(node.getTigaseLoadSMLastHour());
+
+			case 2:
+				return new SnmpGauge(node.getTigaseLoadSMLastMinute());
+
+			case 1:
+				return new SnmpGauge(node.getTigaseLoadSMLastSecond());
+
+			case 21:
+				return new SnmpGauge(node.getTigaseLoadBoshLastHour());
 
-            case 18:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 20:
+				return new SnmpGauge(node.getTigaseLoadBoshLastMinute());
 
-            case 17:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			default:
+				break;
+		}
+		throw new SnmpStatusException(SnmpStatusException.noSuchObject);
+	}
 
-            case 16:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+	/**
+	 * Set the value of a scalar variable
+	 */
+	public SnmpValue set(SnmpValue x, long var, Object data) throws SnmpStatusException {
+		switch ((int) var) {
+			case 19:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 15:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 18:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 14:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 17:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 13:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 16:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 12:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 15:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 11:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 14:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 10:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 13:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 9:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 12:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 8:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 11:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 7:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 10:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 6:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 9:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 5:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 8:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 4:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 7:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 3:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 6:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 2:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 5:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 1:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 4:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 21:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 3:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 20:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 2:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            default:
-                break;
-        }
-        throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-    }
+			case 1:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-    /**
-     * Check the value of a scalar variable
-     */
-    public void check(SnmpValue x, long var, Object data)
-        throws SnmpStatusException {
-        switch((int) var) {
-            case 19:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 21:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 18:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 20:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 17:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			default:
+				break;
+		}
+		throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+	}
 
-            case 16:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+	// ------------------------------------------------------------
+	//
+	// Implements the "get" method defined in "SnmpMibGroup".
+	// See the "SnmpMibGroup" Javadoc API for more details.
+	//
+	// ------------------------------------------------------------
 
-            case 15:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+	/**
+	 * Check the value of a scalar variable
+	 */
+	public void check(SnmpValue x, long var, Object data) throws SnmpStatusException {
+		switch ((int) var) {
+			case 19:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 14:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 18:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 13:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 17:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 12:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 16:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 11:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 15:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 10:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 14:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 9:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+			case 13:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
 
-            case 8:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-
-            case 7:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-
-            case 6:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-
-            case 5:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-
-            case 4:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-
-            case 3:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-
-            case 2:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-
-            case 1:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-
-            case 21:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-
-            case 20:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-
-            default:
-                throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
-        }
-    }
-
-    /**
-     * Allow to bind the metadata description to a specific object.
-     */
-    protected void setInstance(TigaseLoadMBean var) {
-        node = var;
-    }
-
-
-    // ------------------------------------------------------------
-    // 
-    // Implements the "get" method defined in "SnmpMibGroup".
-    // See the "SnmpMibGroup" Javadoc API for more details.
-    // 
-    // ------------------------------------------------------------
-
-    public void get(SnmpMibSubRequest req, int depth)
-        throws SnmpStatusException {
-        objectserver.get(this,req,depth);
-    }
-
-
-    // ------------------------------------------------------------
-    // 
-    // Implements the "set" method defined in "SnmpMibGroup".
-    // See the "SnmpMibGroup" Javadoc API for more details.
-    // 
-    // ------------------------------------------------------------
-
-    public void set(SnmpMibSubRequest req, int depth)
-        throws SnmpStatusException {
-        objectserver.set(this,req,depth);
-    }
-
-
-    // ------------------------------------------------------------
-    // 
-    // Implements the "check" method defined in "SnmpMibGroup".
-    // See the "SnmpMibGroup" Javadoc API for more details.
-    // 
-    // ------------------------------------------------------------
-
-    public void check(SnmpMibSubRequest req, int depth)
-        throws SnmpStatusException {
-        objectserver.check(this,req,depth);
-    }
-
-    /**
-     * Returns true if "arc" identifies a scalar object.
-     */
-    public boolean isVariable(long arc) {
-
-        switch((int)arc) {
-            case 19:
-            case 18:
-            case 17:
-            case 16:
-            case 15:
-            case 14:
-            case 13:
-            case 12:
-            case 11:
-            case 10:
-            case 9:
-            case 8:
-            case 7:
-            case 6:
-            case 5:
-            case 4:
-            case 3:
-            case 2:
-            case 1:
-            case 21:
-            case 20:
-                return true;
-            default:
-                break;
-        }
-        return false;
-    }
-
-    /**
-     * Returns true if "arc" identifies a readable scalar object.
-     */
-    public boolean isReadable(long arc) {
-
-        switch((int)arc) {
-            case 19:
-            case 18:
-            case 17:
-            case 16:
-            case 15:
-            case 14:
-            case 13:
-            case 12:
-            case 11:
-            case 10:
-            case 9:
-            case 8:
-            case 7:
-            case 6:
-            case 5:
-            case 4:
-            case 3:
-            case 2:
-            case 1:
-            case 21:
-            case 20:
-                return true;
-            default:
-                break;
-        }
-        return false;
-    }
-
-
-    // ------------------------------------------------------------
-    // 
-    // Implements the "skipVariable" method defined in "SnmpMibGroup".
-    // See the "SnmpMibGroup" Javadoc API for more details.
-    // 
-    // ------------------------------------------------------------
-
-    public boolean  skipVariable(long var, Object data, int pduVersion) {
-        return false;
-    }
-
-    /**
-     * Return the name of the attribute corresponding to the SNMP variable identified by "id".
-     */
-    public String getAttributeName(long id)
-        throws SnmpStatusException {
-        switch((int)id) {
-            case 19:
-                return "TigaseLoadBoshLastSecond";
-
-            case 18:
-                return "TigaseLoadC2SLastHour";
-
-            case 17:
-                return "TigaseLoadC2SLastMinute";
-
-            case 16:
-                return "TigaseLoadC2SLastSecond";
-
-            case 15:
-                return "TigaseLoadS2SLastHour";
-
-            case 14:
-                return "TigaseLoadS2SLastMinute";
-
-            case 13:
-                return "TigaseLoadS2SLastSecond";
-
-            case 12:
-                return "TigaseLoadPubSubLastHour";
-
-            case 11:
-                return "TigaseLoadPubSubLastMinute";
-
-            case 10:
-                return "TigaseLoadPubSubLastSecond";
-
-            case 9:
-                return "TigaseLoadMUCLastHour";
-
-            case 8:
-                return "TigaseLoadMUCLastMinute";
-
-            case 7:
-                return "TigaseLoadMUCLastSecond";
-
-            case 6:
-                return "TigaseLoadMRLastHour";
-
-            case 5:
-                return "TigaseLoadMRLastMinute";
-
-            case 4:
-                return "TigaseLoadMRLastSecond";
-
-            case 3:
-                return "TigaseLoadSMLastHour";
-
-            case 2:
-                return "TigaseLoadSMLastMinute";
-
-            case 1:
-                return "TigaseLoadSMLastSecond";
-
-            case 21:
-                return "TigaseLoadBoshLastHour";
-
-            case 20:
-                return "TigaseLoadBoshLastMinute";
-
-            default:
-                break;
-        }
-        throw new SnmpStatusException(SnmpStatusException.noSuchObject);
-    }
-
-    /**
-     * Returns true if "arc" identifies a table object.
-     */
-    public boolean isTable(long arc) {
-
-        switch((int)arc) {
-            default:
-                break;
-        }
-        return false;
-    }
-
-    /**
-     * Returns the table object identified by "arc".
-     */
-    public SnmpMibTable getTable(long arc) {
-        return null;
-    }
-
-    /**
-     * Register the group's SnmpMibTable objects with the meta-data.
-     */
-    public void registerTableNodes(SnmpMib mib, MBeanServer server) {
-    }
-
-    protected TigaseLoadMBean node;
-    protected SnmpStandardObjectServer objectserver = null;
+			case 12:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 11:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 10:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 9:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 8:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 7:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 6:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 5:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 4:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 3:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 2:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 1:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 21:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			case 20:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+
+			default:
+				throw new SnmpStatusException(SnmpStatusException.snmpRspNotWritable);
+		}
+	}
+
+	// ------------------------------------------------------------
+	//
+	// Implements the "set" method defined in "SnmpMibGroup".
+	// See the "SnmpMibGroup" Javadoc API for more details.
+	//
+	// ------------------------------------------------------------
+
+	public void get(SnmpMibSubRequest req, int depth) throws SnmpStatusException {
+		objectserver.get(this, req, depth);
+	}
+
+	// ------------------------------------------------------------
+	//
+	// Implements the "check" method defined in "SnmpMibGroup".
+	// See the "SnmpMibGroup" Javadoc API for more details.
+	//
+	// ------------------------------------------------------------
+
+	public void set(SnmpMibSubRequest req, int depth) throws SnmpStatusException {
+		objectserver.set(this, req, depth);
+	}
+
+	public void check(SnmpMibSubRequest req, int depth) throws SnmpStatusException {
+		objectserver.check(this, req, depth);
+	}
+
+	/**
+	 * Returns true if "arc" identifies a scalar object.
+	 */
+	public boolean isVariable(long arc) {
+
+		switch ((int) arc) {
+			case 19:
+			case 18:
+			case 17:
+			case 16:
+			case 15:
+			case 14:
+			case 13:
+			case 12:
+			case 11:
+			case 10:
+			case 9:
+			case 8:
+			case 7:
+			case 6:
+			case 5:
+			case 4:
+			case 3:
+			case 2:
+			case 1:
+			case 21:
+			case 20:
+				return true;
+			default:
+				break;
+		}
+		return false;
+	}
+
+	// ------------------------------------------------------------
+	//
+	// Implements the "skipVariable" method defined in "SnmpMibGroup".
+	// See the "SnmpMibGroup" Javadoc API for more details.
+	//
+	// ------------------------------------------------------------
+
+	/**
+	 * Returns true if "arc" identifies a readable scalar object.
+	 */
+	public boolean isReadable(long arc) {
+
+		switch ((int) arc) {
+			case 19:
+			case 18:
+			case 17:
+			case 16:
+			case 15:
+			case 14:
+			case 13:
+			case 12:
+			case 11:
+			case 10:
+			case 9:
+			case 8:
+			case 7:
+			case 6:
+			case 5:
+			case 4:
+			case 3:
+			case 2:
+			case 1:
+			case 21:
+			case 20:
+				return true;
+			default:
+				break;
+		}
+		return false;
+	}
+
+	public boolean skipVariable(long var, Object data, int pduVersion) {
+		return false;
+	}
+
+	/**
+	 * Return the name of the attribute corresponding to the SNMP variable identified by "id".
+	 */
+	public String getAttributeName(long id) throws SnmpStatusException {
+		switch ((int) id) {
+			case 19:
+				return "TigaseLoadBoshLastSecond";
+
+			case 18:
+				return "TigaseLoadC2SLastHour";
+
+			case 17:
+				return "TigaseLoadC2SLastMinute";
+
+			case 16:
+				return "TigaseLoadC2SLastSecond";
+
+			case 15:
+				return "TigaseLoadS2SLastHour";
+
+			case 14:
+				return "TigaseLoadS2SLastMinute";
+
+			case 13:
+				return "TigaseLoadS2SLastSecond";
+
+			case 12:
+				return "TigaseLoadPubSubLastHour";
+
+			case 11:
+				return "TigaseLoadPubSubLastMinute";
+
+			case 10:
+				return "TigaseLoadPubSubLastSecond";
+
+			case 9:
+				return "TigaseLoadMUCLastHour";
+
+			case 8:
+				return "TigaseLoadMUCLastMinute";
+
+			case 7:
+				return "TigaseLoadMUCLastSecond";
+
+			case 6:
+				return "TigaseLoadMRLastHour";
+
+			case 5:
+				return "TigaseLoadMRLastMinute";
+
+			case 4:
+				return "TigaseLoadMRLastSecond";
+
+			case 3:
+				return "TigaseLoadSMLastHour";
+
+			case 2:
+				return "TigaseLoadSMLastMinute";
+
+			case 1:
+				return "TigaseLoadSMLastSecond";
+
+			case 21:
+				return "TigaseLoadBoshLastHour";
+
+			case 20:
+				return "TigaseLoadBoshLastMinute";
+
+			default:
+				break;
+		}
+		throw new SnmpStatusException(SnmpStatusException.noSuchObject);
+	}
+
+	/**
+	 * Returns true if "arc" identifies a table object.
+	 */
+	public boolean isTable(long arc) {
+
+		switch ((int) arc) {
+			default:
+				break;
+		}
+		return false;
+	}
+
+	/**
+	 * Returns the table object identified by "arc".
+	 */
+	public SnmpMibTable getTable(long arc) {
+		return null;
+	}
+
+	/**
+	 * Register the group's SnmpMibTable objects with the meta-data.
+	 */
+	public void registerTableNodes(SnmpMib mib, MBeanServer server) {
+	}
+
+	/**
+	 * Allow to bind the metadata description to a specific object.
+	 */
+	protected void setInstance(TigaseLoadMBean var) {
+		node = var;
+	}
 }

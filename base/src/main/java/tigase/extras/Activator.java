@@ -24,6 +24,7 @@ import tigase.osgi.AbstractActivator;
 /**
  * Created by andrzej on 13.10.2016.
  */
-public class Activator extends AbstractActivator {
+public class Activator
+		extends AbstractActivator {
 
 }

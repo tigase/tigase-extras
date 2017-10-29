@@ -48,8 +48,10 @@ import java.util.logging.Logger;
  * Created by andrzej on 13.10.2016.
  */
 @Bean(name = "monitoring", parent = Kernel.class, active = true, exportable = true)
-@ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.SessionManagerMode, ConfigTypeEnum.ConnectionManagersMode, ConfigTypeEnum.ComponentMode})
-public class MonitoringBean implements MonitoringBeanIfc, RegistrarBean {
+@ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.SessionManagerMode, ConfigTypeEnum.ConnectionManagersMode,
+			 ConfigTypeEnum.ComponentMode})
+public class MonitoringBean
+		implements MonitoringBeanIfc, RegistrarBean {
 
 	@Inject(nullAllowed = true)
 	private MonitorBean[] monitors;
@@ -64,24 +66,108 @@ public class MonitoringBean implements MonitoringBeanIfc, RegistrarBean {
 
 	}
 
-	public interface MonitorBean extends UnregisterAware, Initializable {
+	public interface MonitorBean
+			extends UnregisterAware, Initializable {
 
-	    void stop() throws Exception;
+		void stop() throws Exception;
 
 		void start() throws Exception;
 
 	}
 
-	public static abstract class MonitorBeanAbstract implements MonitorBean {
+	@Bean(name = "http", parent = MonitoringBean.class, active = false)
+	public static class HttpMonitor
+			extends MonitorBeanAbstract {
+
+		private static final Logger log = Logger.getLogger(HttpMonitor.class.getCanonicalName());
+
+		private HtmlAdaptorServer adaptor;
+		private ObjectName httpName;
+
+		public HttpMonitor() {
+
+		}
+
+		@Override
+		public void start() throws Exception {
+			log.config("Loading HTTP monitor.");
+
+			adaptor = new HtmlAdaptorServer();
+			httpName = new ObjectName("localhost" + ":class=HtmlAdaptorServer,protocol=html,port=" + port);
+
+			server.registerMBean(adaptor, httpName);
+			adaptor.setPort(port);
+			adaptor.start();
+		}
+
+		@Override
+		public void stop() throws Exception {
+			if (adaptor != null) {
+				adaptor.stop();
+			}
+			if (httpName != null) {
+				server.unregisterMBean(httpName);
+			}
+		}
+	}
+
+	@Bean(name = "jmx", parent = MonitoringBean.class, active = false)
+	public static class JMXMonitor
+			extends MonitorBeanAbstract {
+
+		private static final Logger log = Logger.getLogger(JMXMonitor.class.getCanonicalName());
+		private JMXConnectorServer connector;
+		private ObjectName objectName;
+
+		public JMXMonitor() {
+
+		}
+
+		@Override
+		public void start() throws Exception {
+			log.config("Loading JMX monitor.");
+
+			objectName = new ObjectName("system:name=rmiconnector");
+			LocateRegistry.createRegistry(port);
+
+			String serviceURL = "service:jmx:rmi://localhost:" + port + "/jndi/rmi://localhost:" + port + "/jmxrmi";
+
+			Map<String, String> map = new LinkedHashMap<String, String>();
+
+			map.put("java.naming.factory.initial", "com.sun.jndi.rmi.registry.RegistryContextFactory");
+			map.put(RMIConnectorServer.JNDI_REBIND_ATTRIBUTE, "true");
+			map.put("jmx.remote.x.password.file", configDir + File.separator + "jmx.password");
+			map.put("jmx.remote.x.access.file", configDir + File.separator + "jmx.access");
+
+			connector = JMXConnectorServerFactory.newJMXConnectorServer(new JMXServiceURL(serviceURL), map, server);
+
+			// register the connector server as an MBean
+			server.registerMBean(connector, objectName);
+
+			// start the connector server
+			connector.start();
+		}
+
+		@Override
+		public void stop() throws Exception {
+			if (connector != null) {
+				connector.stop();
+			}
+			if (objectName != null) {
+				server.unregisterMBean(objectName);
+			}
+		}
+
+	}
+
+	public static abstract class MonitorBeanAbstract
+			implements MonitorBean {
 
 		private static final Logger log = Logger.getLogger(MonitorBeanAbstract.class.getCanonicalName());
-
-		@ConfigField(desc = "Port for monitor")
-		protected int port;
-
 		@ConfigField(desc = "Config directory", alias = "configDir")
 		protected String configDir = "etc";
-
+		@ConfigField(desc = "Port for monitor")
+		protected int port;
 		protected MBeanServer server;
 
 		public MonitorBeanAbstract() {
@@ -108,109 +194,15 @@ public class MonitoringBean implements MonitoringBeanIfc, RegistrarBean {
 		}
 	}
 
-	@Bean(name = "jmx", parent = MonitoringBean.class, active = false)
-	public static class JMXMonitor extends MonitorBeanAbstract {
-
-		private static final Logger log = Logger.getLogger(JMXMonitor.class.getCanonicalName());
-
-		private ObjectName objectName;
-
-		private JMXConnectorServer connector;
-
-		public JMXMonitor() {
-
-		}
-
-		@Override
-		public void start() throws Exception {
-			log.config("Loading JMX monitor.");
-
-			objectName = new ObjectName("system:name=rmiconnector");
-			LocateRegistry.createRegistry(port);
-
-			String serviceURL = "service:jmx:rmi://localhost:" + port
-					+ "/jndi/rmi://localhost:" + port + "/jmxrmi";
-
-			Map<String, String> map = new LinkedHashMap<String, String>();
-
-			map.put("java.naming.factory.initial",
-					"com.sun.jndi.rmi.registry.RegistryContextFactory");
-			map.put(RMIConnectorServer.JNDI_REBIND_ATTRIBUTE, "true");
-			map.put("jmx.remote.x.password.file",
-					configDir + File.separator + "jmx.password");
-			map.put("jmx.remote.x.access.file",
-					configDir + File.separator + "jmx.access");
-
-			connector =
-					JMXConnectorServerFactory.newJMXConnectorServer(new JMXServiceURL(serviceURL),
-																	map,
-																	server);
-
-			// register the connector server as an MBean
-			server.registerMBean(connector, objectName);
-
-			// start the connector server
-			connector.start();
-		}
-
-		@Override
-		public void stop() throws Exception {
-			if (connector != null) {
-				connector.stop();
-			}
-			if (objectName != null) {
-				server.unregisterMBean(objectName);
-			}
-		}
-
-	}
-
-	@Bean(name = "http", parent = MonitoringBean.class, active = false)
-	public static class HttpMonitor extends MonitorBeanAbstract {
-
-		private static final Logger log = Logger.getLogger(HttpMonitor.class.getCanonicalName());
-
-		private HtmlAdaptorServer adaptor;
-		private ObjectName httpName;
-
-		public HttpMonitor() {
-
-		}
-
-		@Override
-		public void start() throws Exception {
-			log.config("Loading HTTP monitor.");
-
-			adaptor = new HtmlAdaptorServer();
-			httpName = new ObjectName("localhost"
-														 + ":class=HtmlAdaptorServer,protocol=html,port="
-														 + port);
-
-			server.registerMBean(adaptor, httpName);
-			adaptor.setPort(port);
-			adaptor.start();
-		}
-
-		@Override
-		public void stop() throws Exception {
-			if (adaptor != null) {
-				adaptor.stop();
-			}
-			if (httpName != null) {
-				server.unregisterMBean(httpName);
-			}
-		}
-	}
-
 	@Bean(name = "snmp", parent = MonitoringBean.class, active = false)
-	public static class SnmpMonitor extends MonitorBeanAbstract {
+	public static class SnmpMonitor
+			extends MonitorBeanAbstract {
 
 		private static final Logger log = Logger.getLogger(SnmpMonitor.class.getCanonicalName());
-
-		private SnmpAdaptorServer snmpadaptor = null;
-		private ObjectName snmpName;
 		private SnmpMib mib = null;
 		private ObjectName mibObjName;
+		private ObjectName snmpName;
+		private SnmpAdaptorServer snmpadaptor = null;
 
 		public SnmpMonitor() {
 
@@ -220,9 +212,7 @@ public class MonitoringBean implements MonitoringBeanIfc, RegistrarBean {
 		public void start() throws Exception {
 			log.config("Loading SNMP monitor.");
 
-			snmpName = new ObjectName("localhost"
-														 + ":class=SnmpAdaptorServer,protocol=snmp,port="
-														 + port);
+			snmpName = new ObjectName("localhost" + ":class=SnmpAdaptorServer,protocol=snmp,port=" + port);
 			JdmkAcl acl = new JdmkAcl("tigase", configDir + File.separator + "snmp.acl");
 
 			snmpadaptor = new SnmpAdaptorServer(acl, port);

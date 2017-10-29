@@ -39,21 +39,20 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 @Bean(name = "account-email-password-resetter", parent = Kernel.class, active = false, exportable = true)
-public class EmailPasswordResetter extends AbstractEmailSender implements PasswordResetterIfc {
-
-	private static final Logger log = Logger.getLogger(EmailPasswordResetter.class.getCanonicalName());
+public class EmailPasswordResetter
+		extends AbstractEmailSender
+		implements PasswordResetterIfc {
 
 	public static final String EMAIL_PASSWORD_RESET_TOKEN = "email-password-reset-token";
-
-	@Inject
-	private Mailer mailer;
-	@Inject
-	private UserRepository userRepository;
+	private static final Logger log = Logger.getLogger(EmailPasswordResetter.class.getCanonicalName());
 	@Inject
 	private AuthRepository authRepository;
-
+	@Inject
+	private Mailer mailer;
 	@ConfigField(desc = "URL of token verifier")
 	private String tokenVerifierURL;
+	@Inject
+	private UserRepository userRepository;
 
 	public EmailPasswordResetter() {
 		super("Password reset", "mails/email-password-reset.template");

@@ -259,6 +259,134 @@ public class BcTLSIO
 		return caps.contains(TLS_CAPS) || io.checkCapabilities(caps);
 	}
 
+	@Override
+	public long getBuffOverflow(boolean reset) {
+		return io.getBuffOverflow(reset);
+	}
+
+	@Override
+	public long getBytesReceived(boolean reset) {
+		return io.getBytesReceived(reset);
+	}
+
+	@Override
+	public long getBytesSent(boolean reset) {
+		return io.getBytesSent(reset);
+	}
+
+	@Override
+	public int getInputPacketSize() throws IOException {
+		return io.getInputPacketSize();
+	}
+
+	@Override
+	public SocketChannel getSocketChannel() {
+		return io.getSocketChannel();
+	}
+
+	@Override
+	public void getStatistics(StatisticsList list, boolean reset) {
+		if (io != null) {
+			io.getStatistics(list, reset);
+		}
+	}
+
+	@Override
+	public long getTotalBuffOverflow() {
+		return io.getTotalBuffOverflow();
+	}
+
+	@Override
+	public long getTotalBytesReceived() {
+		return io.getTotalBytesReceived();
+	}
+
+	@Override
+	public long getTotalBytesSent() {
+		return io.getTotalBytesSent();
+	}
+
+	@Override
+	public boolean isConnected() {
+		return io.isConnected();
+	}
+
+	@Override
+	public boolean isRemoteAddress(String addr) {
+		return io.isRemoteAddress(addr);
+	}
+
+	@Override
+	public ByteBuffer read(ByteBuffer buff) throws IOException {
+		pumpData();
+		bytesRead = serverProtocol.readInput(buff.array(), buff.position(), buff.remaining());
+		if (bytesRead > 0) {
+			buff.position(buff.position() + bytesRead);
+			buff.flip();
+		}
+		pumpData();
+
+		return buff;
+	}
+
+	@Override
+	public void setLogId(String logId) {
+		io.setLogId(logId);
+	}
+
+	@Override
+	public void stop() throws IOException {
+		if (log.isLoggable(Level.FINEST)) {
+			log.finest("Stop called..." + toString());
+
+			// Thread.dumpStack();
+		}
+
+		io.stop();
+		serverProtocol.close();
+	}
+
+	@Override
+	public String toString() {
+		return "TLS: " + io.toString();
+	}
+
+	@Override
+	public boolean waitingToSend() {
+		return io.waitingToSend();
+	}
+
+	@Override
+	public int waitingToSendSize() {
+		return io.waitingToSendSize();
+	}
+
+	@Override
+	public int write(ByteBuffer buff) throws IOException {
+		int result;
+
+		pumpData();
+
+		if (buff == null) {
+			return io.write(null);
+		}
+
+		try {
+			serverProtocol.writeApplicationData(buff.array(), buff.position(), buff.remaining());
+			result = buff.remaining();
+			buff.position(buff.position() + result);
+			serverProtocol.flush();
+
+			pumpData();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new SSLException(e);
+		}
+
+		return result;
+	}
+
 	private X509Certificate[] gen(Certificate chain) {
 		if (chain == null) {
 			return null;
@@ -345,11 +473,6 @@ public class BcTLSIO
 		return null;
 	}
 
-	@Override
-	public long getBuffOverflow(boolean reset) {
-		return io.getBuffOverflow(reset);
-	}
-
 	private byte[] getBytes(final ByteBuffer buff) {
 		byte[] tmp;
 		if (buff != null) {
@@ -362,58 +485,6 @@ public class BcTLSIO
 			tmp = null;
 		}
 		return tmp;
-	}
-
-	@Override
-	public long getBytesReceived(boolean reset) {
-		return io.getBytesReceived(reset);
-	}
-
-	@Override
-	public long getBytesSent(boolean reset) {
-		return io.getBytesSent(reset);
-	}
-
-	@Override
-	public int getInputPacketSize() throws IOException {
-		return io.getInputPacketSize();
-	}
-
-	@Override
-	public SocketChannel getSocketChannel() {
-		return io.getSocketChannel();
-	}
-
-	@Override
-	public void getStatistics(StatisticsList list, boolean reset) {
-		if (io != null) {
-			io.getStatistics(list, reset);
-		}
-	}
-
-	@Override
-	public long getTotalBuffOverflow() {
-		return io.getTotalBuffOverflow();
-	}
-
-	@Override
-	public long getTotalBytesReceived() {
-		return io.getTotalBytesReceived();
-	}
-
-	@Override
-	public long getTotalBytesSent() {
-		return io.getTotalBytesSent();
-	}
-
-	@Override
-	public boolean isConnected() {
-		return io.isConnected();
-	}
-
-	@Override
-	public boolean isRemoteAddress(String addr) {
-		return io.isRemoteAddress(addr);
 	}
 
 	private void loadKeys() throws Exception {
@@ -460,77 +531,6 @@ public class BcTLSIO
 		} while ((resIn > 0 || resOut > 0) && counter <= 1000);
 	}
 
-	@Override
-	public ByteBuffer read(ByteBuffer buff) throws IOException {
-		pumpData();
-		bytesRead = serverProtocol.readInput(buff.array(), buff.position(), buff.remaining());
-		if (bytesRead > 0) {
-			buff.position(buff.position() + bytesRead);
-			buff.flip();
-		}
-		pumpData();
-
-		return buff;
-	}
-
-	@Override
-	public void setLogId(String logId) {
-		io.setLogId(logId);
-	}
-
-	@Override
-	public void stop() throws IOException {
-		if (log.isLoggable(Level.FINEST)) {
-			log.finest("Stop called..." + toString());
-
-			// Thread.dumpStack();
-		}
-
-		io.stop();
-		serverProtocol.close();
-	}
-
-	@Override
-	public String toString() {
-		return "TLS: " + io.toString();
-	}
-
-	@Override
-	public boolean waitingToSend() {
-		return io.waitingToSend();
-	}
-
-	@Override
-	public int waitingToSendSize() {
-		return io.waitingToSendSize();
-	}
-
-	@Override
-	public int write(ByteBuffer buff) throws IOException {
-		int result;
-
-		pumpData();
-
-		if (buff == null) {
-			return io.write(null);
-		}
-
-		try {
-			serverProtocol.writeApplicationData(buff.array(), buff.position(), buff.remaining());
-			result = buff.remaining();
-			buff.position(buff.position() + result);
-			serverProtocol.flush();
-
-			pumpData();
-
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new SSLException(e);
-		}
-
-		return result;
-	}
-
 	private class TigaseTlsServer
 			extends DefaultTlsServer {
 
@@ -567,23 +567,6 @@ public class BcTLSIO
 			}
 
 			return new CertificateRequest(certificateTypes, serverSigAlgs, certificateAuthorities);
-		}
-
-		@Override
-		protected TlsCredentialedDecryptor getRSAEncryptionCredentials() {
-			org.bouncycastle.tls.Certificate crt = BcTLSIO.this.bcCert;
-			AsymmetricKeyParameter pk = BcTLSIO.this.privateKey;
-			return new BcDefaultTlsCredentialedDecryptor(crypto, crt, pk);
-		}
-
-		@Override
-		protected TlsCredentialedSigner getRSASignerCredentials() {
-			TlsCryptoParameters crpP = new TlsCryptoParameters(context);
-			AsymmetricKeyParameter pk = BcTLSIO.this.privateKey;
-			org.bouncycastle.tls.Certificate crt = BcTLSIO.this.bcCert;
-			SignatureAndHashAlgorithm alg = new SignatureAndHashAlgorithm(HashAlgorithm.sha1, SignatureAlgorithm.rsa);
-
-			return new BcDefaultTlsCredentialedSigner(crpP, crypto, pk, crt, alg);
 		}
 
 		@Override
@@ -626,6 +609,23 @@ public class BcTLSIO
 		public void notifySecureRenegotiation(boolean secureRenegotiation) throws IOException {
 			// This is required, since the default implementation throws an error if secure reneg is not
 			// supported
+		}
+
+		@Override
+		protected TlsCredentialedDecryptor getRSAEncryptionCredentials() {
+			org.bouncycastle.tls.Certificate crt = BcTLSIO.this.bcCert;
+			AsymmetricKeyParameter pk = BcTLSIO.this.privateKey;
+			return new BcDefaultTlsCredentialedDecryptor(crypto, crt, pk);
+		}
+
+		@Override
+		protected TlsCredentialedSigner getRSASignerCredentials() {
+			TlsCryptoParameters crpP = new TlsCryptoParameters(context);
+			AsymmetricKeyParameter pk = BcTLSIO.this.privateKey;
+			org.bouncycastle.tls.Certificate crt = BcTLSIO.this.bcCert;
+			SignatureAndHashAlgorithm alg = new SignatureAndHashAlgorithm(HashAlgorithm.sha1, SignatureAlgorithm.rsa);
+
+			return new BcDefaultTlsCredentialedSigner(crpP, crypto, pk, crt, alg);
 		}
 	}
 

@@ -28,23 +28,34 @@ package tigase.management;
  */
 public interface StatisticsConstatnts {
 
-	public static final String STATS_MXBEAN_NAME =
-					"tigase.stats:type=StatisticsProvider";
+	public static final String STATS_MXBEAN_NAME = "tigase.stats:type=StatisticsProvider";
 
 	public static final String MR_COMP = "message-router";
+
 	public static final String BOSH_COMP = "bosh";
+
 	public static final String SRV_COMP = "s2s";
+
 	public static final String CLI_COMP = "c2s";
+
 	public static final String SM_COMP = "sess-man";
+
 	public static final String PUBSUB_COMP = "pubsub";
+
 	public static final String MUC_COMP = "muc";
 
 	public static final String UPTIME_STAT = "Uptime";
+
 	public static final String OPEN_CONN_STAT = "Open connections";
+
 	public static final String REGISTERED_USERS_STAT = "Registered accounts";
+
 	public static final String OPEN_SESSIONS_STAT = "Open authorized sessions";
+
 	public static final String LAST_SECOND_STAT = "Last second packets";
+
 	public static final String LAST_MINUTE_STAT = "Last minute packets";
+
 	public static final String LAST_HOUR_STAT = "Last hour packets";
 
 	//public static final Long DEF_LONG = 1L;
