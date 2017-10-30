@@ -383,39 +383,16 @@ public class PEMCertificateContainer
 	private static class DummyTrustManager
 			implements X509TrustManager {
 
-		/**
-		 * Method description
-		 *
-		 * @param x509CertificateArray
-		 * @param string
-		 *
-		 * @throws CertificateException
-		 */
 		@Override
 		public void checkClientTrusted(final X509Certificate[] x509CertificateArray, final String string)
 				throws CertificateException {
 		}
 
-		/**
-		 * Method description
-		 *
-		 * @param x509CertificateArray
-		 * @param string
-		 *
-		 * @throws CertificateException
-		 */
 		@Override
 		public void checkServerTrusted(final X509Certificate[] x509CertificateArray, final String string)
 				throws CertificateException {
 		}
 
-		//~--- get methods --------------------------------------------------------
-
-		/**
-		 * Method description
-		 *
-		 * @return
-		 */
 		@Override
 		public X509Certificate[] getAcceptedIssuers() {
 			return null;
@@ -429,13 +406,6 @@ public class PEMCertificateContainer
 		private KeyStore localTrustKeystore;
 		private X509Certificate root;
 
-		//~--- constructors -------------------------------------------------------
-
-		/**
-		 * Constructs ...
-		 *
-		 * @param trustKeystore
-		 */
 		public SelfSignedTrustManager(KeyStore trustKeystore) {
 			try {
 				this.localTrustKeystore = KeyStore.getInstance(KEY_STORE_ALGORITHM);
@@ -452,28 +422,10 @@ public class PEMCertificateContainer
 			}
 		}
 
-		//~--- methods ------------------------------------------------------------
-
-		/**
-		 * Method description
-		 *
-		 * @param chain
-		 * @param authType
-		 *
-		 * @throws CertificateException
-		 */
 		@Override
 		public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
 		}
 
-		/**
-		 * Method description
-		 *
-		 * @param chain
-		 * @param authType
-		 *
-		 * @throws CertificateException
-		 */
 		@Override
 		public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
 			for (X509Certificate certificate : chain) {
@@ -500,13 +452,6 @@ public class PEMCertificateContainer
 			}
 		}
 
-		//~--- get methods --------------------------------------------------------
-
-		/**
-		 * Method description
-		 *
-		 * @return
-		 */
 		@Override
 		public X509Certificate[] getAcceptedIssuers() {
 			return new X509Certificate[]{root};

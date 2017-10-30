@@ -41,15 +41,6 @@ import static tigase.management.StatisticsConstatnts.STATS_MXBEAN_NAME;
  */
 public class StatisticsUtils {
 
-	/**
-	 * Method description
-	 *
-	 * @param comp
-	 * @param stat
-	 * @param def
-	 *
-	 * @return
-	 */
 	public static Long getStatsValue(String comp, String stat, Long def) {
 		Long result = def;
 		String strVal = getStatsValue(comp, stat, def.toString());
@@ -63,15 +54,6 @@ public class StatisticsUtils {
 		return result;
 	}
 
-	/**
-	 * Method description
-	 *
-	 * @param comp
-	 * @param stat
-	 * @param def
-	 *
-	 * @return
-	 */
 	public static String getStatsValue(String comp, String stat, String def) {
 		StatisticsProviderMBean stats = (StatisticsProviderMBean) ConfiguratorAbstract.getMXBean(STATS_MXBEAN_NAME);
 		String result = null;
