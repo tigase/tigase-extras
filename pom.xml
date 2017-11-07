@@ -29,6 +29,7 @@
         <module>base</module>
         <module>mailsender</module>
         <module>mailer</module>
+        <module>mdns</module>
         <module>mongodb</module>
         <module>bcstarttls</module>
         <module>all</module>
