@@ -20,18 +20,12 @@
 
 package tigase.management;
 
-//~--- non-JDK imports --------------------------------------------------------
-
 import tigase.conf.ConfiguratorAbstract;
 import tigase.stats.StatisticsProviderMBean;
 
 import java.util.Map;
 
 import static tigase.management.StatisticsConstatnts.STATS_MXBEAN_NAME;
-
-//~--- JDK imports ------------------------------------------------------------
-
-//~--- classes ----------------------------------------------------------------
 
 /**
  * Created: Jan 10, 2009 5:26:51 PM
@@ -70,6 +64,3 @@ public class StatisticsUtils {
 	}
 }
 
-//~ Formatted in Sun Code Convention
-
-//~ Formatted by Jindent --- http://www.jindent.com

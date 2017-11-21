@@ -376,8 +376,6 @@ public class PEMCertificateContainer
 		trusted
 	}
 
-	//~--- inner classes --------------------------------------------------------
-
 	private static class DummyTrustManager
 			implements X509TrustManager {
 
