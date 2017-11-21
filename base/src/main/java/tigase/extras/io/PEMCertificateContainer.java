@@ -47,10 +47,8 @@ import static tigase.io.SSLContextContainerIfc.*;
 public class PEMCertificateContainer
 		implements CertificateContainerIfc {
 
-	/** Field description */
 	public static final String PEM_PRIVATE_PWD_KEY = "pem-privatekey-password";
 
-	/** Field description */
 	public static final String PEM_PRIVATE_PWD_VAL = "";
 	protected static final Logger log = Logger.getLogger(PEMCertificateContainer.class.getName());
 	private final static String KEY_MANAGER_ALGORITHM = "SunX509";

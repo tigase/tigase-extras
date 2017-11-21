@@ -73,18 +73,12 @@ public class TigaseUser
 	public TigaseUser(SnmpMib myMib, MBeanServer server) {
 	}
 
-	/**
-	 * Getter for the "TigaseUserRegisteredCount" variable.
-	 */
 	public Long getTigaseUserRegisteredCount() throws SnmpStatusException {
 		TigaseUserRegisteredCount = StatisticsUtils.getStatsValue(SM_COMP, REGISTERED_USERS_STAT,
 																  TigaseUserRegisteredCount);
 		return TigaseUserRegisteredCount;
 	}
 
-	/**
-	 * Getter for the "TigaseUserSessionCount" variable.
-	 */
 	public Long getTigaseUserSessionCount() throws SnmpStatusException {
 		TigaseUserSessionCount = StatisticsUtils.getStatsValue(SM_COMP, OPEN_SESSIONS_STAT, TigaseUserSessionCount);
 		return TigaseUserSessionCount;

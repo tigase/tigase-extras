@@ -34,14 +34,8 @@ import com.sun.management.snmp.SnmpStatusException;
  */
 public interface TigaseUserMBean {
 
-	/**
-	 * Getter for the "TigaseUserRegisteredCount" variable.
-	 */
 	public Long getTigaseUserRegisteredCount() throws SnmpStatusException;
 
-	/**
-	 * Getter for the "TigaseUserSessionCount" variable.
-	 */
 	public Long getTigaseUserSessionCount() throws SnmpStatusException;
 
 }
