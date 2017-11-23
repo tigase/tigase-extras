@@ -77,6 +77,16 @@ public class MDnsComponent
 	}
 
 	@Override
+	public String getDiscoCategoryType() {
+		return super.getDiscoCategoryType();
+	}
+
+	@Override
+	public String getDiscoDescription() {
+		return "mDNS component";
+	}
+
+	@Override
 	public synchronized void componentAdded(ServerComponent component) throws ConfigurationException {
 		if (component instanceof S2SConnectionManager) {
 			forEachConnection((ConnectionManager) component, (socketType, port) -> {
