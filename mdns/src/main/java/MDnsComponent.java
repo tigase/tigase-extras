@@ -246,13 +246,13 @@ public class MDnsComponent
 
 	private void ensureSingleServer() {
 		try {
-			HashSet<String> localAddresses = new HashSet<>(Arrays.asList(
-					DNSResolverFactory.getInstance().getHostIPs(DNSResolverFactory.getInstance().getDefaultHost())));
+			HashSet<InetAddress> localAddresses = new HashSet<>(Arrays.asList(
+					InetAddress.getByName(DNSResolverFactory.getInstance().getDefaultHost())));
 			List<InetAddress> nonlocalAddresses = Arrays.stream(InetAddress.getAllByName(serverHost))
-					.filter(address -> !localAddresses.contains(address.getHostAddress()))
+					.filter(address -> !localAddresses.contains(address))
 					.collect(Collectors.toList());
 
-			if (!nonlocalAddresses.isEmpty()) {
+			if (!nonlocalAddresses.isEmpty() && !dnsInjectionWorkaround(nonlocalAddresses)) {
 				TigaseRuntime.getTigaseRuntime()
 						.shutdownTigase(new String[]{"Error! Terminating the server process.",
 													 "Local mDNS domain " + serverHost +
@@ -264,5 +264,21 @@ public class MDnsComponent
 		} catch (UnknownHostException ex) {
 			// this is expected!
 		}
+	}
+
+	private boolean dnsInjectionWorkaround(List<InetAddress> nonlocalAddresses) {
+		if (!nonlocalAddresses.stream().anyMatch(InetAddress::isSiteLocalAddress)) {
+			try {
+				if (Arrays.stream(InetAddress.getAllByName("tig-" + UUID.randomUUID() + "-hub"))
+						.anyMatch(nonlocalAddresses::contains)) {
+					log.warning("non-existing domain resolved to the same address as " + serverHost +
+										", disabling forcing single server for domain!!");
+					return true;
+				}
+			} catch (UnknownHostException ex) {
+				// this is expected
+			}
+		}
+		return false;
 	}
 }
