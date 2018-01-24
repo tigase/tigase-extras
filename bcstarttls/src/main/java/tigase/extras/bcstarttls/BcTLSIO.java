@@ -66,7 +66,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class BcTLSIO
-		implements IOInterface {
+		implements IOInterface, TLSIOIfc {
 
 	public static final String TLS_CAPS = "tls-caps";
 	private static final Logger log = Logger.getLogger(BcTLSIO.class.getName());
@@ -385,6 +385,12 @@ public class BcTLSIO
 		}
 
 		return result;
+	}
+
+	@Override
+	public void processHandshake(byte[] data) throws IOException {
+		serverProtocol.offerInput(data);
+		pumpData();
 	}
 
 	private X509Certificate[] gen(Certificate chain) {
