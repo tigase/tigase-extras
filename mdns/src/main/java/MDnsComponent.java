@@ -40,6 +40,7 @@ import tigase.sys.TigaseRuntime;
 import tigase.util.dns.DNSResolverFactory;
 
 import javax.jmdns.JmDNS;
+import javax.jmdns.NetworkTopologyDiscovery;
 import javax.jmdns.ServiceInfo;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -48,6 +49,7 @@ import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -58,7 +60,7 @@ public class MDnsComponent
 		implements RegistrarBean, Initializable, UnregisterAware, ShutdownHook {
 
 	private static final Logger log = Logger.getLogger(MDnsComponent.class.getCanonicalName());
-	private JmDNS jmDNS;
+	private Optional<JmDNS[]> jmDNS = Optional.empty();
 	private Kernel kernel;
 	@ConfigField(desc = "Advertised hostname of the server", alias = "server-host")
 	private String serverHost;
@@ -147,14 +149,19 @@ public class MDnsComponent
 	@Override
 	public void initialize() {
 		super.initialize();
-		try {
-			if (singleServer) {
-				ensureSingleServer();
+		if (singleServer) {
+			ensureSingleServer();
+		}
+		JmDNS tmp[] = Arrays.stream(NetworkTopologyDiscovery.Factory.getInstance().getInetAddresses()).map(addr -> {
+			try {
+				return JmDNS.create(addr, serverHost);
+			} catch (IOException ex) {
+				return null;
 			}
-			jmDNS = JmDNS.create(serverHost);
+		}).filter(Objects::nonNull).toArray(x -> new JmDNS[x]);
+		jmDNS = tmp.length > 0 ? Optional.of(tmp) : Optional.empty();
+		if (jmDNS.isPresent()) {
 			TigaseRuntime.getTigaseRuntime().addShutdownHook(this);
-		} catch (IOException ex) {
-			throw new RuntimeException(ex.getMessage(), ex);
 		}
 	}
 
@@ -166,14 +173,14 @@ public class MDnsComponent
 
 	@Override
 	public String shutdown() {
-		if (jmDNS != null) {
+		forEachJmDNS(jmDNS -> {
 			try {
 				jmDNS.close();
-				jmDNS = null;
 			} catch (IOException ex) {
 				log.log(Level.WARNING, "failed to stop mDNS service", ex);
 			}
-		}
+		});
+		jmDNS = Optional.empty();
 		return null;
 	}
 
@@ -188,20 +195,26 @@ public class MDnsComponent
 	}
 
 	private void addService(String compName, ServiceInfo info) {
-		try {
-			jmDNS.registerService(info);
+			forEachJmDNS(jmDNS -> {
+				try {
+					jmDNS.registerService(info.clone());
+				} catch (IOException ex) {
+					log.log(Level.WARNING, "Could not advertise mDNS records = " + info.getNiceTextString(), ex);
+				}
+			});
 			List<ServiceInfo> services = servicesPerComponent.computeIfAbsent(compName, (k) -> new ArrayList<>());
 			services.add(info);
-		} catch (IOException ex) {
-			log.log(Level.WARNING, "Could not advertise mDNS records = " + info.getNiceTextString(), ex);
-		}
 	}
 
 	private void removeServices(String compName) {
 		List<ServiceInfo> services = servicesPerComponent.remove(compName);
 		if (services != null) {
-			services.forEach(jmDNS::unregisterService);
+			services.forEach(info -> forEachJmDNS(jmDNS -> jmDNS.unregisterService(info)));
 		}
+	}
+
+	private void forEachJmDNS(Consumer<JmDNS> task) {
+		jmDNS.map(Arrays::stream).ifPresent(stream -> stream.forEach(task));
 	}
 
 	private void forEachConnection(ConnectionManager component, BiConsumer<SocketType, Integer> consumer) {
