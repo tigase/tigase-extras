@@ -196,11 +196,15 @@ public class MDnsComponent
 
 	private void addService(String compName, ServiceInfo info) {
 			forEachJmDNS(jmDNS -> {
-				try {
-					jmDNS.registerService(info.clone());
-				} catch (IOException ex) {
-					log.log(Level.WARNING, "Could not advertise mDNS records = " + info.getNiceTextString(), ex);
-				}
+				new Thread() {
+					public void run() {
+						try {
+							jmDNS.registerService(info.clone());
+						} catch (IOException ex) {
+							log.log(Level.WARNING, "Could not advertise mDNS records = " + info.getNiceTextString(), ex);
+						}
+					}
+				}.start();
 			});
 			List<ServiceInfo> services = servicesPerComponent.computeIfAbsent(compName, (k) -> new ArrayList<>());
 			services.add(info);
