@@ -48,6 +48,8 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -60,7 +62,7 @@ public class MDnsComponent
 		implements RegistrarBean, Initializable, UnregisterAware, ShutdownHook {
 
 	private static final Logger log = Logger.getLogger(MDnsComponent.class.getCanonicalName());
-	private Optional<JmDNS[]> jmDNS = Optional.empty();
+	private final ConcurrentHashMap<InetAddress, JmDNSItem> instances = new ConcurrentHashMap<>();
 	private Kernel kernel;
 	@ConfigField(desc = "Advertised hostname of the server", alias = "server-host")
 	private String serverHost;
@@ -69,6 +71,7 @@ public class MDnsComponent
 	private Map<String, List<ServiceInfo>> servicesPerComponent = new ConcurrentHashMap<>();
 	@ConfigField(desc = "Force single server for domain", alias = "single-server")
 	private boolean singleServer = false;
+	private Timer timer;
 
 	public MDnsComponent() {
 		serverHost = DNSResolverFactory.getInstance().getDefaultHost();
@@ -152,17 +155,67 @@ public class MDnsComponent
 		if (singleServer) {
 			ensureSingleServer();
 		}
-		JmDNS tmp[] = Arrays.stream(NetworkTopologyDiscovery.Factory.getInstance().getInetAddresses()).map(addr -> {
-			try {
-				return JmDNS.create(addr, serverHost);
-			} catch (IOException ex) {
-				return null;
+		timer = new Timer();
+		timer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				updateNetworkTopology();
 			}
-		}).filter(Objects::nonNull).toArray(x -> new JmDNS[x]);
-		jmDNS = tmp.length > 0 ? Optional.of(tmp) : Optional.empty();
-		if (jmDNS.isPresent()) {
-			TigaseRuntime.getTigaseRuntime().addShutdownHook(this);
+		}, 1, 10 * 1000);
+		TigaseRuntime.getTigaseRuntime().addShutdownHook(this);
+	}
+
+	private void updateNetworkTopology() {
+		Set<InetAddress> addresses = new HashSet(
+				Arrays.asList(NetworkTopologyDiscovery.Factory.getInstance().getInetAddresses()));
+		addresses.stream().forEach(addr -> {
+			JmDNSItem jmDNS = instances.computeIfAbsent(addr, this::createJmDNSItem);
+			initializeJmDNS(jmDNS);
+		});
+		List<InetAddress> toRemove = instances.keySet().stream().filter(addr -> !addresses.contains(addr)).collect(Collectors.toList());
+		for (InetAddress addr : toRemove) {
+			if (log.isLoggable(Level.FINEST)) {
+				log.finest("stopping JmDNS for " + addr);
+			}
+			stopJmDNS(instances.remove(addr));
 		}
+	}
+
+	private JmDNSItem createJmDNSItem(InetAddress addr) {
+		try {
+			if (log.isLoggable(Level.FINEST)) {
+				log.finest("starting JmDNS for " + addr);
+			}
+			JmDNS jmDNS = JmDNS.create(addr, serverHost);
+			return new JmDNSItem(jmDNS);
+		} catch (IOException ex) {
+			return null;
+		}
+	}
+
+	private void stopJmDNS(JmDNSItem jmDNS) {
+		if (jmDNS != null) {
+			try {
+				jmDNS.close();
+			} catch (IOException ex) {
+				log.log(Level.WARNING, "failed to stop mDNS service", ex);
+			}
+		}
+	}
+
+	private void initializeJmDNS(JmDNSItem jmDNSItem) {
+		servicesPerComponent.values().stream().flatMap(List::stream).forEach(info -> {
+				jmDNSItem.execute(jmDNS -> {
+					try {
+						if (log.isLoggable(Level.FINEST)) {
+							log.finest("at " + jmDNS.getInetAddress() + " registering " + info.toString());
+						}
+						jmDNS.registerService(info.clone());
+					} catch (IOException ex) {
+						log.log(Level.WARNING, "Could not advertise mDNS records = " + info.getNiceTextString(), ex);
+					}
+				});
+		});
 	}
 
 	@Override
@@ -173,14 +226,8 @@ public class MDnsComponent
 
 	@Override
 	public String shutdown() {
-		forEachJmDNS(jmDNS -> {
-			try {
-				jmDNS.close();
-			} catch (IOException ex) {
-				log.log(Level.WARNING, "failed to stop mDNS service", ex);
-			}
-		});
-		jmDNS = Optional.empty();
+		timer.cancel();
+		instances.values().stream().forEach(this::stopJmDNS);
 		return null;
 	}
 
@@ -195,19 +242,15 @@ public class MDnsComponent
 	}
 
 	private void addService(String compName, ServiceInfo info) {
-			forEachJmDNS(jmDNS -> {
-				new Thread() {
-					public void run() {
-						try {
-							jmDNS.registerService(info.clone());
-						} catch (IOException ex) {
-							log.log(Level.WARNING, "Could not advertise mDNS records = " + info.getNiceTextString(), ex);
-						}
-					}
-				}.start();
-			});
 			List<ServiceInfo> services = servicesPerComponent.computeIfAbsent(compName, (k) -> new ArrayList<>());
 			services.add(info);
+			forEachJmDNS(jmDNS -> {
+				try {
+					jmDNS.registerService(info.clone());
+				} catch (IOException ex) {
+					log.log(Level.WARNING, "Could not advertise mDNS records = " + info.getNiceTextString(), ex);
+				}
+			});
 	}
 
 	private void removeServices(String compName) {
@@ -218,7 +261,7 @@ public class MDnsComponent
 	}
 
 	private void forEachJmDNS(Consumer<JmDNS> task) {
-		jmDNS.map(Arrays::stream).ifPresent(stream -> stream.forEach(task));
+		instances.values().forEach(item -> item.execute(task));
 	}
 
 	private void forEachConnection(ConnectionManager component, BiConsumer<SocketType, Integer> consumer) {
@@ -297,5 +340,25 @@ public class MDnsComponent
 			}
 		}
 		return false;
+	}
+
+	private class JmDNSItem {
+
+		public final JmDNS jmDNS;
+		private final ExecutorService executor;
+
+		public JmDNSItem(JmDNS jmDNS) {
+			this.jmDNS = jmDNS;
+			executor = Executors.newSingleThreadExecutor();
+		}
+
+		public void execute(Consumer<JmDNS> run) {
+			executor.execute(() -> run.accept(jmDNS));
+		}
+
+		public void close() throws IOException {
+			executor.shutdownNow();
+			jmDNS.close();
+		}
 	}
 }
