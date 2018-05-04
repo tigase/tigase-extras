@@ -24,8 +24,13 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.jmdns.JmDNS;
+import javax.jmdns.NetworkTopologyDiscovery;
 import javax.jmdns.ServiceInfo;
+import javax.jmdns.impl.HostInfo;
+import javax.jmdns.impl.JmDNSImpl;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.util.ArrayDeque;
 
 public class MDnsTest {
 
@@ -39,6 +44,40 @@ public class MDnsTest {
 			jmDNS.registerService(info);
 
 			Thread.sleep(1000 * 1000);
+		}
+	}
+
+	@Ignore
+	@Test
+	public void test2() throws IOException, InterruptedException {
+		ArrayDeque<JmDNS> mdnss = new ArrayDeque<>();
+		InetAddress[] addresses = NetworkTopologyDiscovery.Factory.getInstance().getInetAddresses();
+		for (InetAddress addr : addresses) {
+			if (addr.isLinkLocalAddress()) {
+				continue;
+			}
+			System.out.println("creating jmdns for " + addr);
+			JmDNSImpl jmDNS = (JmDNSImpl) JmDNS.create(addr, "tigase-iot-hub.local");
+			HostInfo info = jmDNS.getLocalHost();
+			System.out.println("got host info: addr=" + info.getInetAddress() + ", ifc=" + info.getInterface());
+			mdnss.add(jmDNS);
+		}
+
+		System.out.println("started...");
+		Thread.sleep(10000);
+		System.out.println("results for tigase-iot-hub.local: [");
+		addresses = InetAddress.getAllByName("tigase-iot-hub.local");
+		for (InetAddress address : addresses) {
+			System.out.println("found: " + address);
+		}
+		System.out.println("]");
+		Thread.sleep(1000*1000);
+		System.out.println("stopping...");
+
+		JmDNS mdns = null;
+		while ((mdns = mdnss.poll()) != null) {
+			System.out.println("stopping jmdns for " + mdns.getInetAddress());
+			mdns.close();
 		}
 	}
 }

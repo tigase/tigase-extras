@@ -71,6 +71,8 @@ public class MDnsComponent
 	private Map<String, List<ServiceInfo>> servicesPerComponent = new ConcurrentHashMap<>();
 	@ConfigField(desc = "Force single server for domain", alias = "single-server")
 	private boolean singleServer = false;
+	@ConfigField(desc = "Ignore link-local addresses", alias = "ignore-link-local")
+	private boolean ignoreLinkLocal = true;
 	private Timer timer;
 
 	public MDnsComponent() {
@@ -168,7 +170,7 @@ public class MDnsComponent
 	private void updateNetworkTopology() {
 		Set<InetAddress> addresses = new HashSet(
 				Arrays.asList(NetworkTopologyDiscovery.Factory.getInstance().getInetAddresses()));
-		addresses.stream().forEach(addr -> {
+		addresses.stream().filter(inetAddress -> !ignoreLinkLocal || !inetAddress.isLinkLocalAddress()).forEach(addr -> {
 			JmDNSItem jmDNS = instances.computeIfAbsent(addr, this::createJmDNSItem);
 			initializeJmDNS(jmDNS);
 		});
@@ -306,8 +308,7 @@ public class MDnsComponent
 
 	private void ensureSingleServer() {
 		try {
-			HashSet<InetAddress> localAddresses = new HashSet<>(Arrays.asList(
-					InetAddress.getByName(DNSResolverFactory.getInstance().getDefaultHost())));
+			HashSet<InetAddress> localAddresses = new HashSet<>(Arrays.asList(NetworkTopologyDiscovery.Factory.getInstance().getInetAddresses()));
 			List<InetAddress> nonlocalAddresses = Arrays.stream(InetAddress.getAllByName(serverHost))
 					.filter(address -> !localAddresses.contains(address))
 					.collect(Collectors.toList());
