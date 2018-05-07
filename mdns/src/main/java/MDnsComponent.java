@@ -50,6 +50,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -188,8 +189,7 @@ public class MDnsComponent
 			if (log.isLoggable(Level.FINEST)) {
 				log.finest("starting JmDNS for " + addr);
 			}
-			JmDNS jmDNS = JmDNS.create(addr, serverHost);
-			return new JmDNSItem(jmDNS);
+			return new JmDNSItem(addr, serverHost);
 		} catch (IOException ex) {
 			return null;
 		}
@@ -343,23 +343,80 @@ public class MDnsComponent
 		return false;
 	}
 
-	private class JmDNSItem {
+	private class JmDNSItem implements JmDNS.Delegate {
 
-		public final JmDNS jmDNS;
-		private final ExecutorService executor;
+		private final InetAddress address;
+		private final String name;
+		public JmDNS jmDNS;
+		private ExecutorService executor;
+		private final LinkedList<Runnable> awaiting = new LinkedList<>();
+		private boolean stopped = false;
 
-		public JmDNSItem(JmDNS jmDNS) {
-			this.jmDNS = jmDNS;
-			executor = Executors.newSingleThreadExecutor();
+		public JmDNSItem(InetAddress address, String name) throws IOException {
+			this.address = address;
+			this.name = name;
+			this.jmDNS = JmDNS.create(address, name);
+			this.jmDNS.setDelegate(this::cannotRecoverFromIOError);
+			this.executor = Executors.newSingleThreadExecutor();
 		}
 
-		public void execute(Consumer<JmDNS> run) {
-			executor.execute(() -> run.accept(jmDNS));
+		public synchronized void execute(Consumer<JmDNS> task) {
+			Runnable run = () -> executeTask(task);
+			try {
+				executor.execute(run);
+			} catch (RejectedExecutionException ex) {
+				awaiting.offer(run);
+			}
 		}
 
-		public void close() throws IOException {
+		public synchronized void close() throws IOException {
+			stopped = true;
+			jmDNS.setDelegate(null);
 			executor.shutdownNow();
 			jmDNS.close();
+		}
+
+		@Override
+		public synchronized void cannotRecoverFromIOError(JmDNS jmDNS, Collection<ServiceInfo> collection) {
+			jmDNS.setDelegate(null);
+			if (stopped) {
+				return;
+			}
+			final List<Runnable> cancelled = executor.shutdownNow();
+			MDnsComponent.this.timer.schedule(new TimerTask() {
+				@Override
+				public void run() {
+					restartJmDNS(cancelled);
+				}
+			}, 10 * 1000);
+		}
+
+		private synchronized void restartJmDNS(List<Runnable> cancelled) {
+			jmDNS.setDelegate(null);
+			if (stopped) {
+				return;
+			}
+			try {
+				jmDNS = JmDNS.create(address, name);
+				jmDNS.setDelegate(this);
+				executor = Executors.newSingleThreadExecutor();
+				cancelled.forEach(executor::submit);
+				Runnable task = null;
+				while ((task = awaiting.poll()) != null) {
+					executor.submit(task);
+				}
+			} catch (IOException ex) {
+				MDnsComponent.this.timer.schedule(new TimerTask() {
+					@Override
+					public void run() {
+						restartJmDNS(cancelled);
+					}
+				}, 10 * 1000);
+			}
+		}
+
+		private void executeTask(Consumer<JmDNS> task) {
+			task.accept(jmDNS);
 		}
 	}
 }
