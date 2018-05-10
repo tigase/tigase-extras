@@ -158,7 +158,7 @@ public class MDnsComponent
 		if (singleServer) {
 			ensureSingleServer();
 		}
-		timer = new Timer();
+		timer = new Timer(true);
 		timer.schedule(new TimerTask() {
 			@Override
 			public void run() {
@@ -169,18 +169,21 @@ public class MDnsComponent
 	}
 
 	private void updateNetworkTopology() {
-		Set<InetAddress> addresses = new HashSet(
-				Arrays.asList(NetworkTopologyDiscovery.Factory.getInstance().getInetAddresses()));
-		addresses.stream().filter(inetAddress -> !ignoreLinkLocal || !inetAddress.isLinkLocalAddress()).forEach(addr -> {
-			JmDNSItem jmDNS = instances.computeIfAbsent(addr, this::createJmDNSItem);
-			initializeJmDNS(jmDNS);
-		});
-		List<InetAddress> toRemove = instances.keySet().stream().filter(addr -> !addresses.contains(addr)).collect(Collectors.toList());
-		for (InetAddress addr : toRemove) {
-			if (log.isLoggable(Level.FINEST)) {
-				log.finest("stopping JmDNS for " + addr);
+		try {
+			Set<InetAddress> addresses = new HashSet(Arrays.asList(NetworkTopologyDiscovery.Factory.getInstance().getInetAddresses()));
+			addresses.stream().filter(inetAddress -> !ignoreLinkLocal || !inetAddress.isLinkLocalAddress()).forEach(addr -> {
+				JmDNSItem jmDNS = instances.computeIfAbsent(addr, this::createJmDNSItem);
+				initializeJmDNS(jmDNS);
+			});
+			List<InetAddress> toRemove = instances.keySet().stream().filter(addr -> !addresses.contains(addr)).collect(Collectors.toList());
+			for (InetAddress addr : toRemove) {
+				if (log.isLoggable(Level.FINEST)) {
+					log.finest("stopping JmDNS for " + addr);
+				}
+				stopJmDNS(instances.remove(addr));
 			}
-			stopJmDNS(instances.remove(addr));
+		} catch (Throwable ex) {
+			log.log(Level.SEVERE, "got exception during network topology updated", ex);
 		}
 	}
 
@@ -377,8 +380,11 @@ public class MDnsComponent
 		}
 
 		@Override
-		public synchronized void cannotRecoverFromIOError(JmDNS jmDNS, Collection<ServiceInfo> collection) {
+		public synchronized void cannotRecoverFromIOError(JmDNS jmDNS, Collection<ServiceInfo> serviceInfos) {
 			jmDNS.setDelegate(null);
+			try {
+				jmDNS.close();
+			} catch (Exception ex) {}
 			if (stopped) {
 				return;
 			}
@@ -386,32 +392,44 @@ public class MDnsComponent
 			MDnsComponent.this.timer.schedule(new TimerTask() {
 				@Override
 				public void run() {
-					restartJmDNS(cancelled);
+					restartJmDNS(cancelled, serviceInfos);
 				}
 			}, 10 * 1000);
 		}
 
-		private synchronized void restartJmDNS(List<Runnable> cancelled) {
-			jmDNS.setDelegate(null);
-			if (stopped) {
-				return;
-			}
+		private synchronized void restartJmDNS(List<Runnable> cancelled, Collection<ServiceInfo> serviceInfos) {
 			try {
-				jmDNS = JmDNS.create(address, name);
-				jmDNS.setDelegate(this);
-				executor = Executors.newSingleThreadExecutor();
-				cancelled.forEach(executor::submit);
-				Runnable task = null;
-				while ((task = awaiting.poll()) != null) {
-					executor.submit(task);
+				jmDNS.setDelegate(null);
+				if (stopped) {
+					return;
 				}
-			} catch (IOException ex) {
-				MDnsComponent.this.timer.schedule(new TimerTask() {
-					@Override
-					public void run() {
-						restartJmDNS(cancelled);
+				try {
+					jmDNS = JmDNS.create(address, name);
+					jmDNS.setDelegate(this);
+					serviceInfos.forEach(info -> {
+						try {
+							jmDNS.registerService(info.clone());
+						} catch (IOException ex) {
+							log.log(Level.WARNING, "Could not advertise mDNS records = " + info.getNiceTextString(), ex);
+						}
+					});
+					executor = Executors.newSingleThreadExecutor();
+					cancelled.forEach(executor::submit);
+					Runnable task = null;
+					while ((task = awaiting.poll()) != null) {
+						executor.submit(task);
 					}
-				}, 10 * 1000);
+				} catch (IOException ex) {
+					jmDNS.close();
+					MDnsComponent.this.timer.schedule(new TimerTask() {
+						@Override
+						public void run() {
+							restartJmDNS(cancelled, serviceInfos);
+						}
+					}, 10 * 1000);
+				}
+			} catch (Throwable ex) {
+				log.log(Level.SEVERE, "failed to restart JmDNS", ex);
 			}
 		}
 
