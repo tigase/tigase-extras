@@ -173,7 +173,6 @@ public class MDnsComponent
 			Set<InetAddress> addresses = new HashSet(Arrays.asList(NetworkTopologyDiscovery.Factory.getInstance().getInetAddresses()));
 			addresses.stream().filter(inetAddress -> !ignoreLinkLocal || !inetAddress.isLinkLocalAddress()).forEach(addr -> {
 				JmDNSItem jmDNS = instances.computeIfAbsent(addr, this::createJmDNSItem);
-				initializeJmDNS(jmDNS);
 			});
 			List<InetAddress> toRemove = instances.keySet().stream().filter(addr -> !addresses.contains(addr)).collect(Collectors.toList());
 			for (InetAddress addr : toRemove) {
@@ -192,7 +191,9 @@ public class MDnsComponent
 			if (log.isLoggable(Level.FINEST)) {
 				log.finest("starting JmDNS for " + addr);
 			}
-			return new JmDNSItem(addr, serverHost);
+			JmDNSItem item =  new JmDNSItem(addr, serverHost);
+			initializeJmDNS(item);
+			return item;
 		} catch (IOException ex) {
 			return null;
 		}
