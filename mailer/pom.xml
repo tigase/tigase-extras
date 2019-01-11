@@ -8,60 +8,20 @@
         <artifactId>tigase-extras</artifactId>
         <version>2.0.0-SNAPSHOT</version>
     </parent>
-    <name>Tigase Server Extras Mailer</name>
+
     <artifactId>tigase-extras-mailer</artifactId>
+
+
     <packaging>bundle</packaging>
-    <url>http://maven.apache.org</url>
+
+    <name>Tigase Server Extras Mailer</name>
     <description>Sending mail</description>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
 
-    <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>2.5.1</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <version>2.4.0</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions combine.inherited="append">
-                        <Implementation-Title>${project.name}</Implementation-Title>
-                        <Implementation-Version>${project.version}-b${gitVersion}/${buildNumber}
-                        </Implementation-Version>
-                        <Implementation-Build>${gitVersion}/${buildNumber} (${maven.build.timestamp})
-                        </Implementation-Build>
-                        <Bundle-Activator>tigase.archive.unified.Activator</Bundle-Activator>
-                        <Bundle-SymbolicName>${project.artifactId};singleton=true</Bundle-SymbolicName>
-                    </instructions>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>tigase-extras-mailsender</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>tigase</groupId>
-            <artifactId>tigase-server</artifactId>
-            <version>8.0.0-SNAPSHOT</version>
-            <scope>provided</scope>
+            <artifactId>tigase-extras-mailsender</artifactId>
+            <version>2.0.0-SNAPSHOT</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.osgi.core</artifactId>
-            <version>1.4.0</version>
-            <scope>provided</scope>
-            <type>bundle</type>
-        </dependency>
-
     </dependencies>
 </project>
