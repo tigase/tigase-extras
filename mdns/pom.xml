@@ -26,9 +26,7 @@
                 </property>
             </activation>
             <properties>
-                <maven.javadoc.skip>false</maven.javadoc.skip>
                 <guide_name>Tigase_Extras-mDNS_Support</guide_name>
-                <guide_filename>index</guide_filename>
             </properties>
             <build>
                 <plugins>
