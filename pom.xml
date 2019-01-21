@@ -10,11 +10,17 @@
         <relativePath/>
     </parent>
 
+    <properties>
+        <license.inlineHeader>${inlineHeader_agpl3}</license.inlineHeader>
+    </properties>
+
+    <inceptionYear>2007</inceptionYear>
+
     <artifactId>tigase-extras</artifactId>
     <version>1.1.3-SNAPSHOT</version>
 
     <name>Tigase Server Extras</name>
-    <description>Extra modules to Tigase Server.</description>
+    <description>Extra modules to Tigase Server</description>
 
     <issueManagement>
         <system>Redmine</system>
