@@ -5,7 +5,7 @@
     <parent>
         <groupId>tigase</groupId>
         <artifactId>tigase-extras</artifactId>
-        <version>2.0.0</version>
+        <version>2.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>tigase-extras-mailsender</artifactId>
