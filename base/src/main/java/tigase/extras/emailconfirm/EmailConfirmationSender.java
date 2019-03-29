@@ -94,8 +94,10 @@ public class EmailConfirmationSender
 		try {
 			Token token = Token.parse(encodedToken);
 			String tokenHash = userRepository.getData(token.getJid(), EMAIL_CONFIRMATION_TOKEN_KEY);
+			log.log(Level.FINEST, "Validating token, jid: {0}, tokenHash: {1}, token.getHash(): {2}",
+					new Object[]{token.getJid(), tokenHash, token.getHash()});
 			if (tokenHash == null) {
-				throw new RuntimeException("Invalid token");
+				throw new RuntimeException("Token not found");
 			}
 			if (!token.getHash().equals(tokenHash)) {
 				throw new RuntimeException("Invalid token");
@@ -111,6 +113,9 @@ public class EmailConfirmationSender
 	public void sendToken(BareJID bareJID, String email, Map<String, String> req_params) {
 
 		Token token = Token.create(bareJID);
+
+		log.log(Level.FINEST, "Sending token, jid: {0}, timestamp: {1}, to mail: {2} ",
+				new Object[]{token.getJid(), token.getTimestamp(), email});
 
 		try {
 			userRepository.setData(bareJID, EMAIL_CONFIRMATION_TOKEN_KEY, token.getHash());
