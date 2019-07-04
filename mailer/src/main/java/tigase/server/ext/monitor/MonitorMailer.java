@@ -104,7 +104,7 @@ public class MonitorMailer
 			return;
 		}
 
-		String subject = "Tigase Monitor Notification";
+		String subject = "Tigase Monitor Notification: " + name;
 
 		final StringBuilder sb = new StringBuilder();
 
