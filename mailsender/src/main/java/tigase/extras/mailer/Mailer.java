@@ -21,11 +21,9 @@ import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.config.ConfigField;
 
-import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.Session;
 import javax.mail.Transport;
-import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Properties;
@@ -83,8 +81,7 @@ public class Mailer
 			this.session = Session.getInstance(sessionProperties);
 			log.log(Level.CONFIG, "Setting session: {0}", session);
 		} catch (RuntimeException e) {
-			log.warning(e.getMessage());
-			log.warning("Mailer is not started");
+			log.log(Level.WARNING, "Mailer is not started", e);
 			return;
 		}
 
@@ -98,7 +95,9 @@ public class Mailer
 	public void sendMail(String from, String toAddresses, String messageSubject, String messageText)
 			throws MailerException {
 		try {
-			log.fine("Sending mail: " + messageText);
+			log.log(Level.FINE, "Sending mail, to: {0}, subject: {1}, message: {2}",
+					new Object[]{toAddresses, messageSubject,
+								 (messageText != null ? messageText.substring(0, 2048) : null)});
 
 			Message message = new MimeMessage(session);
 			if (from == null) {
@@ -118,7 +117,7 @@ public class Mailer
 				Transport.send(message, to, smtpUsername, smtpPassword);
 			}
 		} catch (Exception e) {
-			log.log(Level.WARNING, "Can't send mail to: " + toAddresses + ", subject: " + messageSubject + ", text: " + messageText);
+			log.log(Level.WARNING, "Can''t send mail to: " + toAddresses + ", subject: " + messageSubject + ", text: " + (messageText != null ? messageText.substring(0,2048) : null));
 			throw new MailerException(e);
 		}
 	}
