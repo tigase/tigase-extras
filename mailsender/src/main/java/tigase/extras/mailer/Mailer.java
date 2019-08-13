@@ -21,9 +21,11 @@ import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.config.ConfigField;
 
+import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.Session;
 import javax.mail.Transport;
+import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Properties;
@@ -59,6 +61,8 @@ public class Mailer
 		sessionProperties.put("mail.smtp.starttls.enable", "true");
 		sessionProperties.put("mail.smtp.ssl.trust", "*");
 		sessionProperties.put("mail.smtps.ssl.trust", "*");
+
+		sessionProperties.put("mail.smtp.timeout", 5000);
 
 		sessionProperties.put("mail.smtp.ssl.checkserveridentity", "false");
 		sessionProperties.put("mail.smtp.ssl.trust", "*");
@@ -114,7 +118,7 @@ public class Mailer
 				Transport.send(message, to, smtpUsername, smtpPassword);
 			}
 		} catch (Exception e) {
-			log.log(Level.WARNING, "Can't send mail", e);
+			log.log(Level.WARNING, "Can't send mail to: " + toAddresses + ", subject: " + messageSubject + ", text: " + messageText);
 			throw new MailerException(e);
 		}
 	}
