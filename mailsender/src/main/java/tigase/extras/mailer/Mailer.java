@@ -20,6 +20,7 @@ package tigase.extras.mailer;
 import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.config.ConfigField;
+import tigase.util.StringUtilities;
 
 import javax.mail.Message;
 import javax.mail.Session;
@@ -94,10 +95,13 @@ public class Mailer
 
 	public void sendMail(String from, String toAddresses, String messageSubject, String messageText)
 			throws MailerException {
+		final String message = messageText != null ? StringUtilities.convertNonPrintableCharactersToLiterals(
+				messageText.substring(0, 2048) + " ...") : null;
 		try {
-			log.log(Level.FINE, "Sending mail, to: {0}, subject: {1}, message: {2}",
-					new Object[]{toAddresses, messageSubject,
-								 (messageText != null ? messageText.substring(0, 2048) : null)});
+			if (log.isLoggable(Level.FINE)) {
+				log.log(Level.FINE, "Sending mail, to: {0}, subject: {1}, message: {2}",
+						new Object[]{toAddresses, messageSubject, message});
+			}
 
 			Message message = new MimeMessage(session);
 			if (from == null) {
@@ -117,7 +121,7 @@ public class Mailer
 				Transport.send(message, to, smtpUsername, smtpPassword);
 			}
 		} catch (Exception e) {
-			log.log(Level.WARNING, "Can''t send mail to: " + toAddresses + ", subject: " + messageSubject + ", text: " + (messageText != null ? messageText.substring(0,2048) : null));
+			log.log(Level.WARNING, "Can''t send mail to: " + toAddresses + ", subject: " + messageSubject + ", text size: " + (messageText != null ? messageText.length() : null));
 			throw new MailerException(e);
 		}
 	}
