@@ -95,10 +95,10 @@ public class Mailer
 
 	public void sendMail(String from, String toAddresses, String messageSubject, String messageText)
 			throws MailerException {
-		final String message = messageText != null ? StringUtilities.convertNonPrintableCharactersToLiterals(
-				messageText.substring(0, 2048) + " ...") : null;
 		try {
 			if (log.isLoggable(Level.FINE)) {
+				final String message = messageText != null ? StringUtilities.convertNonPrintableCharactersToLiterals(
+						messageText.substring(0, 2048) + " ...") : null;
 				log.log(Level.FINE, "Sending mail, to: {0}, subject: {1}, message: {2}",
 						new Object[]{toAddresses, messageSubject, message});
 			}
@@ -121,7 +121,9 @@ public class Mailer
 				Transport.send(message, to, smtpUsername, smtpPassword);
 			}
 		} catch (Exception e) {
-			log.log(Level.WARNING, "Can''t send mail to: " + toAddresses + ", subject: " + messageSubject + ", text size: " + (messageText != null ? messageText.length() : null));
+			log.log(Level.WARNING,
+					"Can''t send mail to: " + toAddresses + ", subject: " + messageSubject + ", text size: " +
+							(messageText != null ? messageText.length() : null));
 			throw new MailerException(e);
 		}
 	}
