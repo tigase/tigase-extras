@@ -98,7 +98,7 @@ public class Mailer
 		try {
 			if (log.isLoggable(Level.FINE)) {
 				final String message = messageText != null ? StringUtilities.convertNonPrintableCharactersToLiterals(
-						messageText.substring(0, 2048) + " ...") : null;
+						messageText.substring(0, Math.min(messageText.length(),2048)) + " ...") : null;
 				log.log(Level.FINE, "Sending mail, to: {0}, subject: {1}, message: {2}",
 						new Object[]{toAddresses, messageSubject, message});
 			}
