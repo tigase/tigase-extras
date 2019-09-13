@@ -25,6 +25,7 @@ import tigase.util.StringUtilities;
 import javax.mail.Message;
 import javax.mail.Session;
 import javax.mail.Transport;
+import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.Properties;
@@ -50,6 +51,16 @@ public class Mailer
 	private String smtpPort = "587";
 	@ConfigField(desc = "SMTP username", alias = "mailer-smtp-username")
 	private String smtpUsername;
+
+	public void setFromAddress(String fromAddress) {
+		try {
+			final InternetAddress internetAddress = new InternetAddress(fromAddress);
+			internetAddress.validate();
+		} catch (AddressException e) {
+			log.log(Level.SEVERE, "Address: " + fromAddress + " is invalid: " + e);
+		}
+		this.fromAddress = fromAddress;
+	}
 
 	@Override
 	public void initialize() {
@@ -98,7 +109,7 @@ public class Mailer
 		try {
 			if (log.isLoggable(Level.FINE)) {
 				final String message = messageText != null ? StringUtilities.convertNonPrintableCharactersToLiterals(
-						messageText.substring(0, Math.min(messageText.length(),2048)) + " ...") : null;
+						messageText.substring(0, Math.min(messageText.length(), 2048)) + " ...") : null;
 				log.log(Level.FINE, "Sending mail, to: {0}, subject: {1}, message: {2}",
 						new Object[]{toAddresses, messageSubject, message});
 			}
@@ -120,11 +131,17 @@ public class Mailer
 			} else {
 				Transport.send(message, to, smtpUsername, smtpPassword);
 			}
+		} catch (AddressException e) {
+			handleException(Level.FINE, toAddresses, messageSubject, messageText, e);
 		} catch (Exception e) {
-			log.log(Level.WARNING,
-					"Can''t send mail to: " + toAddresses + ", subject: " + messageSubject + ", text size: " +
-							(messageText != null ? messageText.length() : null));
-			throw new MailerException(e);
+			handleException(Level.WARNING, toAddresses, messageSubject, messageText, e);
 		}
+	}
+
+	private void handleException(Level logLevel, String toAddresses, String messageSubject, String messageText,
+								 Exception e) {
+		log.log(logLevel, "Can''t send mail to: " + toAddresses + ", subject: " + messageSubject + ", text size: " +
+				(messageText != null ? messageText.length() : null) + ", exception: " + e);
+		throw new MailerException(e);
 	}
 }
