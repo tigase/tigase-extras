@@ -1,4 +1,4 @@
-/**
+/*
  * Tigase Server Extras Base - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *

@@ -1,4 +1,4 @@
-/**
+/*
  * Tigase Server Extras Mailer - Sending mail
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *

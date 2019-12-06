@@ -1,4 +1,4 @@
-/**
+/*
  * Tigase Server Extras mDNS support - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *
