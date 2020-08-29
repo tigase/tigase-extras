@@ -116,6 +116,7 @@
             <artifactId>tigase-server</artifactId>
             <version>8.1.0</version>
             <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>tigase</groupId>
@@ -123,6 +124,7 @@
             <version>8.1.0</version>
             <type>test-jar</type>
             <scope>test</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 
