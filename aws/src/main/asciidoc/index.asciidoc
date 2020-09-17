@@ -1,5 +1,6 @@
 = Tigase Server Extras - AWS
-:author: Tigase Team <team@tigase.net>
+:author: Tigase Team
+:email: team@tigase.net
 :toc:
 :numbered:
 

@@ -8,26 +8,13 @@
         <version>2.2.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-
+    <properties>
+        <guide_name>Tigase_Extras_AWS</guide_name>
+        <documentation_phases.all_converters>generate-resources</documentation_phases.all_converters>
+    </properties>
     <artifactId>tigase-extras-aws</artifactId>
 
     <name>Tigase Server Extras for AWS</name>
-    
-    <profiles>
-        <profile>
-            <id>dist</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>dist</name>
-                </property>
-            </activation>
-            <properties>
-                <guide_name>Tigase_Extras_AWS</guide_name>
-                <documentation_phases.all_converters>generate-resources</documentation_phases.all_converters>
-            </properties>
-        </profile>
-    </profiles>
     
     <dependencies>
         <dependency>

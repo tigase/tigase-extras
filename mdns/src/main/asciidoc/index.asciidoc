@@ -1,6 +1,6 @@
 = Tigase Server Extras - mDNS support
-
-:author: Tigase Team <team@tigase.net>
+:author: Tigase Team
+:email: team@tigase.net
 :toc:
 :numbered:
 
