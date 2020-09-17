@@ -34,6 +34,7 @@
         <module>mdns</module>
         <module>mongodb</module>
         <module>bcstarttls</module>
+        <module>aws</module>
         <module>all</module>
     </modules>
 
