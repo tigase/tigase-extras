@@ -38,3 +38,16 @@ upload () {
     }
 }
 -----
+
+If you wish to share the same S3 bucket between different installations of Tigase XMPP Server, you should configure `bucketKeyPrefix` property of `store` with different identifiers for each installation.
+That will allow you to easily filter data uploaded for each installation and will allow Tigase XMPP Server to provide you with correct storage usage for each installation.
+
+[source,dsl]
+-----
+upload () {
+    store (class: tigase.extras.http.upload.S3Store, active: true, exportable: true) {
+        bucket = 'bucket-name'
+        bucketKeyPrefix = '45252AF'
+    }
+}
+-----

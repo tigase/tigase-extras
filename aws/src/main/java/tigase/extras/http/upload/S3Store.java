@@ -52,6 +52,8 @@ public class S3Store implements Store, ConfigurationChangedAware {
 	private Regions region;
 	@ConfigField(desc = "S3 bucket")
 	private String bucket;
+	@ConfigField(desc = "S3 bucket key prefix")
+	private String bucketKeyPrefix;
 	@ConfigField(desc = "Autocreate bucket")
 	private boolean autocreateBucket = false;
 
@@ -73,7 +75,7 @@ public class S3Store implements Store, ConfigurationChangedAware {
 	@Override
 	public long count() throws IOException {
 		try {
-			return s3.listObjectsV2(bucket).getKeyCount();
+			return s3.listObjectsV2(bucket, bucketKeyPrefix).getKeyCount();
 		} catch (AmazonServiceException ex) {
 			throw new IOException("Could not count files", ex);
 		}
@@ -82,7 +84,7 @@ public class S3Store implements Store, ConfigurationChangedAware {
 	@Override
 	public long size() throws IOException {
 		try {
-			return s3.listObjectsV2(bucket).getObjectSummaries().stream().mapToLong( summary -> summary.getSize() ).sum();
+			return s3.listObjectsV2(bucket, bucketKeyPrefix).getObjectSummaries().stream().mapToLong( summary -> summary.getSize() ).sum();
 		} catch (AmazonServiceException ex) {
 			throw new IOException("Could not count files", ex);
 		}
@@ -92,7 +94,7 @@ public class S3Store implements Store, ConfigurationChangedAware {
 	public ReadableByteChannel getContent(BareJID uploader, String slotId, String filename) throws IOException {
 		try {
 			return Channels.newChannel(
-					s3.getObject(new GetObjectRequest(bucket, slotId + "/" + filename)).getObjectContent());
+					s3.getObject(new GetObjectRequest(bucket, createKey(slotId, filename))).getObjectContent());
 		} catch (AmazonServiceException ex) {
 			throw new IOException("Could not download the file " + slotId + " from S3", ex);
 		}
@@ -107,7 +109,7 @@ public class S3Store implements Store, ConfigurationChangedAware {
 			destination.transferFrom(source, 0, size);
 		}
 		try {
-			s3.putObject(bucket, slotId + "/" + filename, tmp);
+			s3.putObject(bucket, createKey(slotId, filename), tmp);
 		} catch (AmazonServiceException ex) {
 			tmp.delete();
 			throw new IOException("Could not upload the file " + slotId + " to S3", ex);
@@ -117,7 +119,7 @@ public class S3Store implements Store, ConfigurationChangedAware {
 	@Override
 	public void remove(BareJID uploader, String slotId) throws IOException {
 		try {
-			List<DeleteObjectsRequest.KeyVersion> toRemove = s3.listObjectsV2(bucket, slotId)
+			List<DeleteObjectsRequest.KeyVersion> toRemove = s3.listObjectsV2(bucket, createKeyPrefix(slotId))
 					.getObjectSummaries()
 					.stream()
 					.map(S3ObjectSummary::getKey)
@@ -172,4 +174,15 @@ public class S3Store implements Store, ConfigurationChangedAware {
 //						.withAllowedHeaders(List.of("Authorization", "Content-Type"))));
 	}
 
+	protected String createKeyPrefix(String slotId) {
+		if (bucketKeyPrefix == null || bucketKeyPrefix.isBlank()) {
+			return slotId;
+		} else {
+			return bucketKeyPrefix + "/" + slotId;
+		}
+	}
+
+	protected String createKey(String slotId, String filename) {
+		return createKeyPrefix(slotId) + "/" + filename;
+	}
 }
