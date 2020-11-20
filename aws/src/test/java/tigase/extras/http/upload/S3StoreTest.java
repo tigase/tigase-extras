@@ -15,18 +15,17 @@
  * along with this program. Look for COPYING file in the top folder.
  * If not, see http://www.gnu.org/licenses/.
  */
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
-import org.junit.Ignore;
-import org.junit.Test;
+
+package tigase.extras.http.upload;
+
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import org.junit.*;
 import org.junit.runners.MethodSorters;
-import tigase.extras.http.upload.S3Store;
 import tigase.xmpp.jid.BareJID;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -60,13 +59,19 @@ public class S3StoreTest {
 
 		Logger.getGlobal().setLevel(Level.ALL);
 		store = new S3Store();
-		Field f = S3Store.class.getDeclaredField("bucket");
-		f.setAccessible(true);
-		f.set(store, "test-bucket-andrzej1");
-		f = S3Store.class.getDeclaredField("autocreateBucket");
-		f.setAccessible(true);
-		f.set(store, true);
+		store.bucket = "test-bucket-wojtek1";
+		store.autocreateBucket = true;
 		store.beanConfigurationChanged(Collections.emptyList());
+	}
+
+	@AfterClass
+	public static void cleanup() throws NoSuchFieldException, IllegalAccessException, NoSuchAlgorithmException {
+		store.s3.listObjectsV2(store.bucket)
+				.getObjectSummaries()
+				.stream()
+				.map(S3ObjectSummary::getKey)
+				.forEach(key -> store.s3.deleteObject(store.bucket, key));
+		store.s3.deleteBucket(store.bucket);
 	}
 
 	@Test

@@ -46,16 +46,16 @@ public class S3Store implements Store, ConfigurationChangedAware {
 
 	private static Logger log = Logger.getLogger(S3Store.class.getCanonicalName());
 
-	private AmazonS3 s3;
+	protected AmazonS3 s3;
 
 	@ConfigField(desc = "AWS region")
 	private Regions region;
 	@ConfigField(desc = "S3 bucket")
-	private String bucket;
+	protected String bucket;
 	@ConfigField(desc = "S3 bucket key prefix")
 	private String bucketKeyPrefix;
 	@ConfigField(desc = "Autocreate bucket")
-	private boolean autocreateBucket = false;
+	protected boolean autocreateBucket = false;
 
 	public String getRegion() {
 		if (region != null) {
@@ -93,8 +93,7 @@ public class S3Store implements Store, ConfigurationChangedAware {
 	@Override
 	public ReadableByteChannel getContent(BareJID uploader, String slotId, String filename) throws IOException {
 		try {
-			return Channels.newChannel(
-					s3.getObject(new GetObjectRequest(bucket, createKey(slotId, filename))).getObjectContent());
+			return Channels.newChannel(s3.getObject(new GetObjectRequest(bucket, createKey(slotId, filename))).getObjectContent());
 		} catch (AmazonServiceException ex) {
 			throw new IOException("Could not download the file " + slotId + " from S3", ex);
 		}
@@ -155,8 +154,6 @@ public class S3Store implements Store, ConfigurationChangedAware {
 				}
 				try {
 					CreateBucketRequest request = new CreateBucketRequest(bucket);
-//			s3.getS3AccountOwner().getId()
-//			request.setAccessControlList(new AccessControlList().grantAllPermissions(new Grant()));
 					request.setCannedAcl(CannedAccessControlList.PublicRead);
 					s3.createBucket(request);
 				} catch (AmazonServiceException ex) {
@@ -168,10 +165,6 @@ public class S3Store implements Store, ConfigurationChangedAware {
 			}
 		}
 
-//		s3.setBucketCrossOriginConfiguration(bucket, new BucketCrossOriginConfiguration().withRules(
-//				new CORSRule().withAllowedOrigins(List.of("*"))
-//						.withAllowedMethods(List.of(CORSRule.AllowedMethods.GET, CORSRule.AllowedMethods.HEAD))
-//						.withAllowedHeaders(List.of("Authorization", "Content-Type"))));
 	}
 
 	protected String createKeyPrefix(String slotId) {
