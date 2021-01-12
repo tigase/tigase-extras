@@ -27,7 +27,9 @@ import tigase.kernel.beans.UnregisterAware;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.monitor.MonitorComponent;
 import tigase.monitor.MonitorExtension;
+import tigase.util.StringUtilities;
 import tigase.xml.Element;
+import tigase.xml.XMLUtils;
 
 import java.util.Map;
 import java.util.logging.Level;
@@ -121,7 +123,7 @@ public class MonitorMailer
 		} else {
 			sb.append("Event: ").append(name).append('\n');
 			for (Element c : event.getChildren()) {
-				sb.append("    ").append(c.getName()).append(": ").append(c.getCData()).append('\n');
+				sb.append("    ").append(c.getName()).append(": ").append(XMLUtils.unescape(c.getCData())).append('\n');
 			}
 		}
 
