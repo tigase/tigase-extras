@@ -30,9 +30,11 @@ import tigase.xmpp.jid.BareJID;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardOpenOption;
 import java.util.Collection;
 import java.util.List;
@@ -93,9 +95,17 @@ public class S3Store implements Store, ConfigurationChangedAware {
 	@Override
 	public ReadableByteChannel getContent(BareJID uploader, String slotId, String filename) throws IOException {
 		try {
-			return Channels.newChannel(s3.getObject(new GetObjectRequest(bucket, createKey(slotId, filename))).getObjectContent());
+			// encode filename to make GET request URI
+			return Channels.newChannel(
+					s3.getObject(new GetObjectRequest(bucket, createKey(slotId, URLEncoder.encode(filename, StandardCharsets.UTF_8)))).getObjectContent());
 		} catch (AmazonServiceException ex) {
-			throw new IOException("Could not download the file " + slotId + " from S3", ex);
+			// as we changed encoding of keys of uploaded files now, we should (for older files) keys which were not encoded..
+			try {
+				return Channels.newChannel(s3.getObject(new GetObjectRequest(bucket, createKey(slotId,
+						filename))).getObjectContent());
+			} catch (AmazonServiceException ex1) {
+				throw new IOException("Could not download the file " + slotId + " from S3", ex);
+			}
 		}
 	}
 
@@ -108,7 +118,8 @@ public class S3Store implements Store, ConfigurationChangedAware {
 			destination.transferFrom(source, 0, size);
 		}
 		try {
-			s3.putObject(bucket, createKey(slotId, filename), tmp);
+			// encode filename to make GET request URI
+			s3.putObject(bucket, createKey(slotId, URLEncoder.encode(filename, StandardCharsets.UTF_8)), tmp);
 		} catch (AmazonServiceException ex) {
 			tmp.delete();
 			throw new IOException("Could not upload the file " + slotId + " to S3", ex);
