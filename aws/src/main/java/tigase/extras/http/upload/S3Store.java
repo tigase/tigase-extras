@@ -143,13 +143,14 @@ public class S3Store implements Store, ConfigurationChangedAware {
 
 	@Override
 	public void beanConfigurationChanged(Collection<String> collection) {
+		log.log(Level.INFO, "Initiating S3 storage at " + region + ", collection: " + collection);
 		AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
 		if (region != null) {
 			builder.withRegion(region);
 		}
-		Optional.ofNullable(s3).ifPresent( s3 -> s3.shutdown() );
+		Optional.ofNullable(s3).ifPresent(AmazonS3::shutdown);
 		s3 = builder.build();
-		log.log(Level.INFO, "Initiated S3 storage at " + s3.getRegionName() + " :" + s3.getS3AccountOwner().toString());
+		log.log(Level.INFO, "Initiated S3 storage at " + s3.getRegionName());
 
 		if (!s3.doesBucketExistV2(bucket)) {
 			if (log.isLoggable(Level.FINE)) {
