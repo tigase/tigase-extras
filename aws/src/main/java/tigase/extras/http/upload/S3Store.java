@@ -135,7 +135,9 @@ public class S3Store implements Store, ConfigurationChangedAware {
 					.map(S3ObjectSummary::getKey)
 					.map(DeleteObjectsRequest.KeyVersion::new)
 					.collect(Collectors.toList());
-			s3.deleteObjects(new DeleteObjectsRequest(bucket).withKeys(toRemove));
+			if (!toRemove.isEmpty()) {
+				s3.deleteObjects(new DeleteObjectsRequest(bucket).withKeys(toRemove));
+			}
 		} catch (AmazonServiceException ex) {
 			throw new IOException("Could not remove file " + slotId + " from S3", ex);
 		}
