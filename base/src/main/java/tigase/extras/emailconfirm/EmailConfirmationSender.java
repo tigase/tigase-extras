@@ -133,7 +133,7 @@ public class EmailConfirmationSender
 		try {
 			sendMail(email, bindings);
 		} catch (Exception e) {
-			log.log(Level.WARNING, "Cannot send confirmation mail", e);
+			log.log(Level.FINE, "Cannot send confirmation mail", e);
 		}
 	}
 
