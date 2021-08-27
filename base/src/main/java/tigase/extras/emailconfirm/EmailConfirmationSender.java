@@ -35,6 +35,7 @@ import tigase.xmpp.XMPPProcessorException;
 import tigase.xmpp.impl.JabberIqRegister;
 import tigase.xmpp.jid.BareJID;
 
+import javax.mail.internet.AddressException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -132,6 +133,8 @@ public class EmailConfirmationSender
 
 		try {
 			sendMail(email, bindings);
+		} catch (AddressException e) {
+			log.log(Level.FINE, "Cannot send confirmation mail", e);
 		} catch (Exception e) {
 			log.log(Level.WARNING, "Cannot send confirmation mail", e);
 		}

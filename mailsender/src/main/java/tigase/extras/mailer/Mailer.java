@@ -17,12 +17,14 @@
  */
 package tigase.extras.mailer;
 
+import com.sun.mail.smtp.SMTPAddressFailedException;
 import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.util.StringUtilities;
 
 import javax.mail.Message;
+import javax.mail.SendFailedException;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.AddressException;
@@ -131,7 +133,7 @@ public class Mailer
 			} else {
 				Transport.send(message, to, smtpUsername, smtpPassword);
 			}
-		} catch (AddressException e) {
+		} catch (AddressException | SMTPAddressFailedException e) {
 			handleException(Level.FINE, toAddresses, messageSubject, messageText, e);
 		} catch (Exception e) {
 			handleException(Level.WARNING, toAddresses, messageSubject, messageText, e);
