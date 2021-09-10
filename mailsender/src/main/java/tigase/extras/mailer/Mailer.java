@@ -124,6 +124,9 @@ public class Mailer
 			}
 
 			InternetAddress[] to = InternetAddress.parse(toAddresses);
+			for (InternetAddress address : to) {
+				address.validate();
+			}
 			message.setRecipients(Message.RecipientType.TO, to);
 			message.setSubject(messageSubject);
 			message.setText(messageText);
@@ -135,6 +138,8 @@ public class Mailer
 			}
 		} catch (AddressException | SMTPAddressFailedException e) {
 			handleException(Level.FINE, toAddresses, messageSubject, messageText, e);
+		} catch (SendFailedException e) {
+			handleException(Level.INFO, toAddresses, messageSubject, messageText, e);
 		} catch (Exception e) {
 			handleException(Level.WARNING, toAddresses, messageSubject, messageText, e);
 		}

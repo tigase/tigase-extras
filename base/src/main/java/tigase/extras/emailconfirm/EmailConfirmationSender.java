@@ -36,6 +36,7 @@ import tigase.xmpp.impl.JabberIqRegister;
 import tigase.xmpp.jid.BareJID;
 
 import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -78,8 +79,15 @@ public class EmailConfirmationSender
 
 	@Override
 	public void checkRequiredParameters(BareJID jid, Map<String, String> reg_params) throws XMPPProcessorException {
-		if (reg_params.getOrDefault("email", "").trim().isEmpty()) {
+		final String email = reg_params.getOrDefault("email", "").trim();
+		if (email.isEmpty()) {
 			throw new XMPPProcessorException(Authorization.NOT_ACCEPTABLE, "Email address is required");
+		}
+		try {
+			final InternetAddress internetAddress = new InternetAddress(email);
+			internetAddress.validate();
+		} catch (AddressException e) {
+			throw new XMPPProcessorException(Authorization.NOT_ACCEPTABLE, "Email address '" + email + "' is invalid");
 		}
 	}
 
