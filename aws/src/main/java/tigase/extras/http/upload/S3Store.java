@@ -18,6 +18,10 @@
 package tigase.extras.http.upload;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -58,6 +62,16 @@ public class S3Store implements Store, ConfigurationChangedAware {
 	private String bucketKeyPrefix;
 	@ConfigField(desc = "Autocreate bucket")
 	protected boolean autocreateBucket = false;
+	@ConfigField(desc = "S3 access key id")
+	protected String accessKeyId;
+	@ConfigField(desc = "S3 secret key")
+	protected String secretKey;
+	@ConfigField(desc = "S3 endpoint url")
+	protected String endpointUrl;
+	@ConfigField(desc = "AWS path style access")
+	protected Boolean pathStyleAccess = null;
+	@ConfigField(desc = "S3 signer override")
+	protected String signerOverride;
 
 	public String getRegion() {
 		if (region != null) {
@@ -147,8 +161,21 @@ public class S3Store implements Store, ConfigurationChangedAware {
 	public void beanConfigurationChanged(Collection<String> collection) {
 		log.log(Level.INFO, "Initiating S3 storage at " + region + ", collection: " + collection);
 		AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
-		if (region != null) {
+		if (pathStyleAccess != null) {
+			builder.setPathStyleAccessEnabled(pathStyleAccess);
+		}
+		if (endpointUrl != null && (!endpointUrl.isEmpty())) {
+			builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpointUrl, Optional.ofNullable(region).orElse(Regions.US_EAST_1).getName()));
+		} else if (region != null) {
 			builder.withRegion(region);
+		}
+		if (signerOverride != null && (!signerOverride.isEmpty())) {
+			ClientConfiguration clientConfiguration = new ClientConfiguration();
+			clientConfiguration.setSignerOverride(signerOverride);
+			builder.withClientConfiguration(clientConfiguration);
+		}
+		if (accessKeyId != null && (!accessKeyId.isEmpty())&& secretKey != null && (!secretKey.isEmpty())) {
+			builder.setCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKeyId, secretKey)));
 		}
 		Optional.ofNullable(s3).ifPresent(AmazonS3::shutdown);
 		s3 = builder.build();
