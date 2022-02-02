@@ -18,7 +18,7 @@
 package tigase.server.ext.monitor;
 
 import tigase.eventbus.EventBus;
-import tigase.eventbus.EventListener;
+import tigase.eventbus.HandleEvent;
 import tigase.extras.mailer.Mailer;
 import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Initializable;
@@ -27,7 +27,6 @@ import tigase.kernel.beans.UnregisterAware;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.monitor.MonitorComponent;
 import tigase.monitor.MonitorExtension;
-import tigase.util.StringUtilities;
 import tigase.xml.Element;
 import tigase.xml.XMLUtils;
 
@@ -53,17 +52,6 @@ public class MonitorMailer
 	private Mailer mailSender;
 	@ConfigField(desc = "Email notification recipients", alias = "to-addresses")
 	private String toAddresses;
-	private final EventListener<Element> handler = new EventListener<Element>() {
-		@Override
-		public void onEvent(Element event) {
-			String eventFullName = ((Element) event).getName();
-			int i = eventFullName.lastIndexOf(".");
-			final String packageName = i >= 0 ? eventFullName.substring(0, i) : "";
-			final String eventName = eventFullName.substring(i + 1);
-
-			MonitorMailer.this.onEvent(eventName, packageName, event);
-		}
-	};
 
 	public EventBus getEventBus() {
 		return eventBus;
@@ -75,13 +63,13 @@ public class MonitorMailer
 
 	@Override
 	public void beforeUnregister() {
-		eventBus.removeListener(handler);
+		eventBus.unregisterAll(this);
 	}
 
 	@Override
 	public void initialize() {
 		log.config("Initializing Monitor Mailer");
-		eventBus.addListener("tigase.monitor.tasks", null, handler);
+		eventBus.registerAll(this);
 	}
 
 	@Override
@@ -101,30 +89,22 @@ public class MonitorMailer
 
 	}
 
-	protected void onEvent(final String name, final String xmlns, final Element event) {
-		if (event.getAttributeStaticStr(REMOTE_EVENT_INDICATOR) != null) {
-			return;
-		}
-
-		String subject = "Tigase Monitor Notification: " + name;
+	@HandleEvent(filter = HandleEvent.Type.local)
+	protected void onEvent(tigase.monitor.tasks.TasksEvent event) {
+		String subject = "Tigase Monitor Notification: " + event.getName();
 
 		final StringBuilder sb = new StringBuilder();
 
 		sb.append("Tigase Monitor generated event!\n\n");
-		sb.append("hostname: ").append(component.getDefHostName()).append('\n');
+		sb.append("Event: ").append(event.getName()).append('\n');
+		sb.append("Time: ").append(event.getTimestamp()).append('\n');
+		sb.append("Description: ").append(event.getDescription()).append('\n');
+		sb.append("hostname: ").append(event.getHostname()).append('\n');
+		sb.append("hostname_external: ").append(event.getExternal_hostname()).append('\n');
 
-		if ("SampleTaskEnabled".equals(name)) {
-			String t = event.getCData(new String[]{"tigase.monitor.tasks.SampleTaskEnabled", "message"});
-			subject += " - " + t;
-			sb.append("This is notification from sample monitor task.").append('\n');
-			for (Element c : event.getChildren()) {
-				sb.append("    ").append(c.getName()).append(": ").append(c.getCData()).append('\n');
-			}
-		} else {
-			sb.append("Event: ").append(name).append('\n');
-			for (Element c : event.getChildren()) {
-				sb.append("    ").append(c.getName()).append(": ").append(XMLUtils.unescape(c.getCData())).append('\n');
-			}
+		sb.append("Additional data: ").append('\n');
+		for (Map.Entry<String, String> entry : event.getAdditionalData().entrySet()) {
+			sb.append("    ").append(entry.getKey()).append(": ").append(XMLUtils.unescape(entry.getValue())).append('\n');
 		}
 
 		sendMail(subject, sb.toString());
