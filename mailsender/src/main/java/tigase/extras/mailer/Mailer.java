@@ -21,6 +21,7 @@ import com.sun.mail.smtp.SMTPAddressFailedException;
 import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.config.ConfigField;
+import tigase.kernel.beans.config.ConfigFieldType;
 import tigase.util.StringUtilities;
 
 import javax.mail.Message;
@@ -47,7 +48,7 @@ public class Mailer
 	private Session session;
 	@ConfigField(desc = "SMTP host", alias = "mailer-smtp-host")
 	private String smtpHost;
-	@ConfigField(desc = "SMTP password", alias = "mailer-smtp-password")
+	@ConfigField(desc = "SMTP password", alias = "mailer-smtp-password", type = ConfigFieldType.Password)
 	private String smtpPassword;
 	@ConfigField(desc = "SMTP port", alias = "mailer-smtp-port")
 	private String smtpPort = "587";
