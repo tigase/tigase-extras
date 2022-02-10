@@ -15,6 +15,7 @@
  * along with this program. Look for COPYING file in the top folder.
  * If not, see http://www.gnu.org/licenses/.
  */
+import tigase.annotations.TigaseDeprecated;
 import tigase.conf.ConfigurationException;
 import tigase.http.AbstractHttpServer;
 import tigase.http.HttpMessageReceiver;
@@ -55,6 +56,8 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Bean(name = "mdns", parent = Kernel.class, active = false)
+@TigaseDeprecated(since = "2.2.0")
+@Deprecated
 public class MDnsComponent
 		extends AbstractComponentRegistrator
 		implements RegistrarBean, Initializable, UnregisterAware, ShutdownHook {
