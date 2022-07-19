@@ -52,6 +52,22 @@ public class Mailer
 	@ConfigField(desc = "SMTP username", alias = "mailer-smtp-username")
 	private String smtpUsername;
 
+	public enum TYPE {
+		PLAIN("text/plain"),
+		HTML("text/html");
+
+		private String type;
+
+		TYPE(String type) {
+			this.type = type;
+		}
+
+		public String getType() {
+			return type;
+		}
+	}
+
+
 	public void setFromAddress(String fromAddress) {
 		try {
 			final InternetAddress internetAddress = new InternetAddress(fromAddress);
@@ -104,7 +120,12 @@ public class Mailer
 		sendMail(null, toAddresses, messageSubject, messageText);
 	}
 
-	public void sendMail(String from, String toAddresses, String messageSubject, String messageText)
+	public void sendMail(String from, String toAddresses, String messageSubject, String messageText) {
+		sendMail(from, toAddresses, messageSubject, messageText, TYPE.PLAIN);
+
+	}
+
+	public void sendMail(String from, String toAddresses, String messageSubject, String messageText, TYPE type)
 			throws MailerException {
 		try {
 			if (log.isLoggable(Level.FINE)) {
@@ -124,7 +145,16 @@ public class Mailer
 			InternetAddress[] to = InternetAddress.parse(toAddresses);
 			message.setRecipients(Message.RecipientType.TO, to);
 			message.setSubject(messageSubject);
-			message.setText(messageText);
+			switch (type) {
+				case HTML:
+					message.setContent(messageText, type.getType());
+					break;
+
+				case PLAIN:
+					message.setText(messageText);
+					break;
+
+			}
 
 			if (smtpUsername == null || smtpUsername.trim().isEmpty()) {
 				Transport.send(message, to);
