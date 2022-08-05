@@ -159,7 +159,7 @@ public class S3Store implements Store, ConfigurationChangedAware {
 
 	@Override
 	public void beanConfigurationChanged(Collection<String> collection) {
-		log.log(Level.INFO, "Initiating S3 storage at " + region + ", collection: " + collection);
+		log.log(Level.CONFIG, "Initiating S3 storage at " + region + ", collection: " + collection);
 		AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
 		if (pathStyleAccess != null) {
 			builder.setPathStyleAccessEnabled(pathStyleAccess);
@@ -179,7 +179,7 @@ public class S3Store implements Store, ConfigurationChangedAware {
 		}
 		Optional.ofNullable(s3).ifPresent(AmazonS3::shutdown);
 		s3 = builder.build();
-		log.log(Level.INFO, "Initiated S3 storage at " + s3.getRegionName());
+		log.log(Level.CONFIG, "Initiated S3 storage at " + s3.getRegionName());
 
 		if (!s3.doesBucketExistV2(bucket)) {
 			if (log.isLoggable(Level.FINE)) {
