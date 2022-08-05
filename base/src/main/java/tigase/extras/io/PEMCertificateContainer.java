@@ -246,7 +246,6 @@ public class PEMCertificateContainer
 		trustKeyStore = KeyStore.getInstance(KEY_STORE_ALGORITHM);
 		trustKeyStore.load(null, internalKeystorePassword.toCharArray());
 		log.config("Initializing SSL Context Container with trust model = " + this.trustModel.name());
-		log.info("Loading trusted CA certificates from " + root.getAbsolutePath() + "...");
 		if (files != null) {
 			for (File file : files) {
 				try {
@@ -265,7 +264,7 @@ public class PEMCertificateContainer
 				}
 			}
 		}
-		log.info("Loaded " + trustKeyStore.size() + " trusted CA certificates.");
+		log.log(Level.CONFIG, "Loaded " + trustKeyStore.size() + " trusted CA certificates.");
 		trustManagerFactory = TrustManagerFactory.getInstance(TRUST_MANAGER_ALGORITHM);
 
 		X509CertSelector selector = new X509CertSelector();
@@ -293,13 +292,13 @@ public class PEMCertificateContainer
 		List<java.security.cert.Certificate> certs = new ArrayList<java.security.cert.Certificate>();
 		Key key = null;
 
-		log.info("Reading private key & certificate chain; alias: '" + alias + "', password: '" + privateKeyPassphrase +
+		log.log(Level.CONFIG, "Reading private key & certificate chain; alias: '" + alias + "', password: '" + privateKeyPassphrase +
 						 "'");
 		for (File fileName : fileNames) {
 			if (!fileName.exists()) {
 				continue;
 			}
-			log.info("Reading data from file " + fileName);
+			log.log(Level.CONFIG, "Reading data from file " + fileName);
 
 			PEMReader reader = null;
 
