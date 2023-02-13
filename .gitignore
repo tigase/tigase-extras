@@ -2,3 +2,5 @@ docs
 .idea/
 target/
 *.iml
+aws/src/main/restructured/locale/*/LC_MESSAGES/*.mo
+aws/src/main/restructured/_build/
