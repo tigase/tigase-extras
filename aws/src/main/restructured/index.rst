@@ -1,6 +1,6 @@
 
 ==========================================
-Tigase MUC Component - Version 3.3.0
+Tigase Server Extras - AWS
 ==========================================
 
 .. toctree::
@@ -8,11 +8,6 @@ Tigase MUC Component - Version 3.3.0
    :numbered: 3
 
    Overview
-   Release_notes
-   Announcement
-   Database
-   Configuration
-   Room_configuration
-   Presence_from_offline
-
+   S3_support_for_HTTP_File_Upload
+   Logging_to_AWS_CloudWatch
 
