@@ -1,0 +1,108 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2004-2022, Tigase, Inc
+# This file is distributed under the same license as the TigaseDoc package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: TigaseDoc \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-20 10:17-0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.11.0\n"
+
+#: ../../Logging_to_AWS_CloudWatch.rst:2
+msgid "Logging to AWS CloudWatch"
+msgstr ""
+
+#: ../../Logging_to_AWS_CloudWatch.rst:4
+msgid "To log to AWS CloudWatch there are two modifications required:"
+msgstr ""
+
+#: ../../Logging_to_AWS_CloudWatch.rst:6
+msgid "adding ``org.slf4j.bridge.SLF4JBridgeHandler`` to ``logging`` bean:"
+msgstr ""
+
+#: ../../Logging_to_AWS_CloudWatch.rst:14
+msgid "Add appender configuration to logback.xml configuration file:"
+msgstr ""
+
+#: ../../Logging_to_AWS_CloudWatch.rst:55
+msgid "and it to root logger configuration:"
+msgstr ""
+
+#: ../../Overview.rst:2
+msgid "Overview"
+msgstr ""
+
+#: ../../Overview.rst:4
+msgid ""
+"Tigase Server Extras - AWS provides you with support for additional "
+"features and integrations with Amazon AWS."
+msgstr ""
+
+#: ../../S3_support_for_HTTP_File_Upload.rst:2
+msgid "S3 support for HTTP File Upload"
+msgstr ""
+
+#: ../../S3_support_for_HTTP_File_Upload.rst:4
+msgid ""
+"By default HTTP File Upload component shipped with Tigase XMPP Server "
+"stores uploaded files locally in the directory structure. On AWS it may "
+"be better to store data using external service like S3 which are better "
+"suited for this task and are more resilient."
+msgstr ""
+
+#: ../../S3_support_for_HTTP_File_Upload.rst:7
+msgid "Enabling storage in S3"
+msgstr ""
+
+#: ../../S3_support_for_HTTP_File_Upload.rst:9
+msgid ""
+"To enable storage in S3, you need to add following lines to your "
+"configuration file:"
+msgstr ""
+
+#: ../../S3_support_for_HTTP_File_Upload.rst:19
+msgid ""
+"This will enable HTTP File Upload component and configure it to be used "
+"with S3 bucket named ``bucket-name`` in the same region as your EC2 "
+"instance on which Tigase XMPP Server is running."
+msgstr ""
+
+#: ../../S3_support_for_HTTP_File_Upload.rst:23
+msgid ""
+"You would need to manually create this S3 bucket and allow your EC2 "
+"instance to access it (read and write). Alternatively, you could add "
+"``autocreateBucket = true`` inside ``store`` block, which will enable "
+"Tigase XMPP Server to create this S3 bucket in the local AWS region."
+msgstr ""
+
+#: ../../S3_support_for_HTTP_File_Upload.rst:25
+msgid ""
+"If you wish to use S3 bucket from another AWS region, you can do that by "
+"adding setting ``region`` property in the ``store`` block to the id of "
+"the AWS region, ie. set to ``us-west-2`` to use ``US West (Oregon)`` "
+"region:"
+msgstr ""
+
+#: ../../S3_support_for_HTTP_File_Upload.rst:36
+msgid ""
+"If you wish to share the same S3 bucket between different installations "
+"of Tigase XMPP Server, you should configure ``bucketKeyPrefix`` property "
+"of ``store`` with different identifiers for each installation. That will "
+"allow you to easily filter data uploaded for each installation and will "
+"allow Tigase XMPP Server to provide you with correct storage usage for "
+"each installation."
+msgstr ""
+
+#: ../../index.rst:4
+msgid "Tigase Server Extras - AWS"
+msgstr ""
+
