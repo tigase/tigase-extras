@@ -3,53 +3,56 @@
 # This file is distributed under the same license as the TigaseDoc package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: TigaseDoc \n"
+"Project-Id-Version: TigaseDoc\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-02-20 10:17-0800\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"PO-Revision-Date: 2023-02-22 08:30+0000\n"
+"Last-Translator: Qian Luo <qian.luo@tigase.net>\n"
+"Language-Team: Chinese (Simplified) <http://translate.tigase.net/projects/"
+"tigase-extra/tigase-extra/zh_Hans/>\n"
+"Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Weblate 4.11.2\n"
 "Generated-By: Babel 2.11.0\n"
 
 #: ../../Logging_to_AWS_CloudWatch.rst:2
 msgid "Logging to AWS CloudWatch"
-msgstr ""
+msgstr "登录到AWS CloudWatch"
 
 #: ../../Logging_to_AWS_CloudWatch.rst:4
 msgid "To log to AWS CloudWatch there are two modifications required:"
-msgstr ""
+msgstr "要登录到 AWS CloudWatch，需要进行两项修改："
 
 #: ../../Logging_to_AWS_CloudWatch.rst:6
 msgid "adding ``org.slf4j.bridge.SLF4JBridgeHandler`` to ``logging`` bean:"
-msgstr ""
+msgstr "将 ``org.slf4j.bridge.SLF4JBridgeHandler`` 添加到 ``logging`` bean:"
 
 #: ../../Logging_to_AWS_CloudWatch.rst:14
 msgid "Add appender configuration to logback.xml configuration file:"
-msgstr ""
+msgstr "在 logback.xml 配置文件中添加 appender 配置："
 
 #: ../../Logging_to_AWS_CloudWatch.rst:55
 msgid "and it to root logger configuration:"
-msgstr ""
+msgstr "并将其设置为根记录器配置："
 
 #: ../../Overview.rst:2
 msgid "Overview"
-msgstr ""
+msgstr "概述"
 
 #: ../../Overview.rst:4
 msgid ""
 "Tigase Server Extras - AWS provides you with support for additional "
 "features and integrations with Amazon AWS."
-msgstr ""
+msgstr "Tigase Server Extras - AWS 为您提供附加功能支持以及与 Amazon AWS 的集成。"
 
 #: ../../S3_support_for_HTTP_File_Upload.rst:2
 msgid "S3 support for HTTP File Upload"
-msgstr ""
+msgstr "S3 支持 HTTP 文件上传"
 
 #: ../../S3_support_for_HTTP_File_Upload.rst:4
 msgid ""
@@ -58,16 +61,19 @@ msgid ""
 "be better to store data using external service like S3 which are better "
 "suited for this task and are more resilient."
 msgstr ""
+"默认情况下，Tigase XMPP 服务器附带的 HTTP "
+"文件上传组件将上传的文件存储在本地目录结构中。在 AWS "
+"上，使用更适合此任务且更具弹性的外部服务（如 S3）存储数据可能会更好。"
 
 #: ../../S3_support_for_HTTP_File_Upload.rst:7
 msgid "Enabling storage in S3"
-msgstr ""
+msgstr "在 S3 中启用存储"
 
 #: ../../S3_support_for_HTTP_File_Upload.rst:9
 msgid ""
 "To enable storage in S3, you need to add following lines to your "
 "configuration file:"
-msgstr ""
+msgstr "要在 S3 中启用存储，您需要在配置文件中添加以下行："
 
 #: ../../S3_support_for_HTTP_File_Upload.rst:19
 msgid ""
@@ -75,6 +81,8 @@ msgid ""
 "with S3 bucket named ``bucket-name`` in the same region as your EC2 "
 "instance on which Tigase XMPP Server is running."
 msgstr ""
+"这将启用 HTTP 文件上传组件并将其配置为在与运行 Tigase XMPP 服务器的 EC2 "
+"实例相同的区域中与名为 ``bucket-name`` 的 S3 存储桶一起使用。"
 
 #: ../../S3_support_for_HTTP_File_Upload.rst:23
 msgid ""
@@ -83,6 +91,9 @@ msgid ""
 "``autocreateBucket = true`` inside ``store`` block, which will enable "
 "Tigase XMPP Server to create this S3 bucket in the local AWS region."
 msgstr ""
+"您需要手动创建此 S3 存储桶并允许您的 EC2 实例访问它（读取和写入）。或者，"
+"您可以在 ``store`` 块中添加 ``autocreateBucket = true``，这将使 Tigase XMPP "
+"服务器能够在本地 AWS 区域中创建此 S3 存储桶。"
 
 #: ../../S3_support_for_HTTP_File_Upload.rst:25
 msgid ""
@@ -91,6 +102,9 @@ msgid ""
 "the AWS region, ie. set to ``us-west-2`` to use ``US West (Oregon)`` "
 "region:"
 msgstr ""
+"如果您希望使用来自另一个 AWS 区域的 S3 存储桶，您可以通过将 ``store`` "
+"块中的设置 ``region`` 属性添加到 AWS 区域的 ID 来实现，即设置为 ``us-west-2``"
+" 以使用 ``美国西部（俄勒冈)`` 区域："
 
 #: ../../S3_support_for_HTTP_File_Upload.rst:36
 msgid ""
@@ -101,8 +115,11 @@ msgid ""
 "allow Tigase XMPP Server to provide you with correct storage usage for "
 "each installation."
 msgstr ""
+"如果您希望在 Tigase XMPP Server 的不同安装之间共享同一个 S3 存储桶，"
+"您应该为每个安装配置 ``store`` 的 ``bucketKeyPrefix`` "
+"属性，使用不同的标识符。这将允许您轻松过滤为每个安装上传的数据，并允许 "
+"Tigase XMPP Server 为您提供每个安装的正确存储使用情况。"
 
 #: ../../index.rst:4
 msgid "Tigase Server Extras - AWS"
-msgstr ""
-
+msgstr "Tigase 服务器附加服务 - AWS"
