@@ -1,5 +1,5 @@
 @REM
-@REM Tigase MUC - Multi User Chat component for Tigase
+@REM Tigase Server Extras for AWS - Extra modules to Tigase Server
 @REM Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
 @REM
 @REM This program is free software: you can redistribute it and/or modify
