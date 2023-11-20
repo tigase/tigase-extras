@@ -3,6 +3,8 @@ package tigase.extras.bcstarttls;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
+import org.bouncycastle.crypto.params.ECKeyParameters;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.tls.*;
 import org.bouncycastle.tls.crypto.TlsCrypto;
 import org.bouncycastle.tls.crypto.TlsCryptoParameters;
@@ -11,7 +13,10 @@ import org.bouncycastle.tls.crypto.impl.bc.BcTlsCertificate;
 import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Vector;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -24,7 +29,7 @@ public class DefaultTls13Server
 															   CipherSuite.TLS_AES_128_GCM_SHA256,
 															   CipherSuite.TLS_CHACHA20_POLY1305_SHA256,};
 	private final TlsCrypto crypto;
-	private final Map<Integer, Credentials> m_credentials = new HashMap<>();
+	private final Credentials credentials;
 	private List<X500Name> m_clientTrustedIssuers = null;
 	private List<Integer> m_peerSigSchemes = null;
 
@@ -45,7 +50,7 @@ public class DefaultTls13Server
 
 		// TODO Fill in m_credentials according to which SignatureScheme values we support e.g.:
 //		m_credentials.put(SignatureScheme.rsa_pkcs1_sha384, new Credentials(bcCert, privateKey));
-		m_credentials.put(SignatureScheme.rsa_pkcs1_sha256, new Credentials(bcCert, privateKey));
+		credentials = new Credentials(bcCert, privateKey);
 	}
 
 	@Override
@@ -99,20 +104,36 @@ public class DefaultTls13Server
 		return result;
 	}
 
-	private TlsCredentials createCredentialedSigner13(final int signatureScheme, final Credentials credentials) {
+	private TlsCredentials createCredentialedSigner13(final SignatureAndHashAlgorithm signatureScheme, final Credentials credentials) {
 		if (!(crypto instanceof BcTlsCrypto)) {
 			throw new RuntimeException("Crypto in not BcTlsCrypto");
 		}
+		log.finest(() -> "selected peer sig schema " + signatureScheme);
 		return new BcDefaultTlsCredentialedSigner(new TlsCryptoParameters(context), (BcTlsCrypto) crypto,
 												  credentials.privateKey, credentials.certificate,
-												  SignatureScheme.getSignatureAndHashAlgorithm(signatureScheme));
+												  signatureScheme);
 	}
-
-	private boolean isSuitableCredentials(final Credentials credentials) throws IOException {
+	
+	private boolean isSuitableCredentials(final Credentials credentials, final SignatureAndHashAlgorithm algorithm) throws IOException {
 		var certificate = credentials.certificate;
 		if (certificate.isEmpty()) {
 			return false;
 		}
+
+		var algId = SignatureScheme.from(algorithm);
+
+		// check if private key matches signature schema
+		// TODO: maybe it is not needed and certificate key check done below would be enough? that would simplify things a lot
+		if ((!(SignatureScheme.isRSAPSS(algId) && credentials.privateKey instanceof RSAKeyParameters)) &&
+				(!(SignatureScheme.isECDSA(algId) && credentials.privateKey instanceof ECKeyParameters))) {
+			return false;
+		}
+
+		// use only algorithms for which matches key used by certificate
+		if (!certificate.getCertificateAt(0).supportsSignatureAlgorithm(SignatureScheme.getSignatureAlgorithm(algId))) {
+			return false;
+		}
+
 		if (m_clientTrustedIssuers == null || m_clientTrustedIssuers.isEmpty()) {
 			return true;
 		}
@@ -143,15 +164,24 @@ public class DefaultTls13Server
 	}
 
 	private TlsCredentials selectServerCredentials13() throws IOException {
+		if (log.isLoggable(Level.FINEST)) {
+			log.finest(() -> "selecting peer sig schema from " + m_peerSigSchemes.stream().map(SignatureScheme::getSignatureAndHashAlgorithm).toList());
+		}
+
+		SignatureAndHashAlgorithm best = null;
 		for (int peerSigScheme : m_peerSigSchemes) {
-			if (!m_credentials.containsKey(peerSigScheme)) {
+			SignatureAndHashAlgorithm current = SignatureScheme.getSignatureAndHashAlgorithm(peerSigScheme);
+			if (current == null) {
 				continue;
 			}
-			final Credentials candidateCredentials = m_credentials.get(peerSigScheme);
-			if (!isSuitableCredentials(candidateCredentials)) {
+			if (!isSuitableCredentials(credentials, current)) {
 				continue;
 			}
-			return createCredentialedSigner13(peerSigScheme, candidateCredentials);
+			// TODO: we are using the last one as in my tests, last one had best hash algorithm, but that may be wrong in theory we could use first found
+			best = current;
+		}
+		if (best != null) {
+			return createCredentialedSigner13(best, credentials);
 		}
 		return null;
 	}
