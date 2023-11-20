@@ -30,14 +30,15 @@ import org.bouncycastle.crypto.util.PrivateKeyFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.tls.*;
 import org.bouncycastle.tls.Certificate;
+import org.bouncycastle.tls.*;
 import org.bouncycastle.tls.crypto.TlsCertificate;
 import org.bouncycastle.tls.crypto.TlsCrypto;
 import org.bouncycastle.tls.crypto.TlsCryptoParameters;
 import org.bouncycastle.tls.crypto.impl.bc.BcDefaultTlsCredentialedDecryptor;
 import org.bouncycastle.tls.crypto.impl.bc.BcDefaultTlsCredentialedSigner;
 import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
+import org.bouncycastle.util.encoders.Hex;
 import tigase.cert.CertCheckResult;
 import tigase.cert.CertificateUtil;
 import tigase.io.*;
@@ -66,30 +67,51 @@ public class BcTLSIO
 		implements IOInterface, TLSIOIfc {
 
 	public static final String TLS_CAPS = "tls-caps";
+
 	private static final Logger log = Logger.getLogger(BcTLSIO.class.getName());
+
 	private final CertificateContainerIfc certificateContainer;
+
 	private final TrustManager[] clientTrustManagers;
+
 	private final BcTlsCrypto crypto;
+
 	private final TLSEventHandler eventHandler;
+
 	private final String hostname;
+
 	private final boolean needClientAuth;
+
 	private final SecureRandom random;
-	private final DefaultTlsServer server;
+
+	private final AbstractTlsServer server;
+
 	private final TlsServerProtocol serverProtocol;
+
 	private final boolean wantClientAuth;
+
 	private Certificate bcCert;
+
 	private int bytesRead = 0;
+
 	private boolean handshakeCompleted = false;
+
 	private IOInterface io = null;
+
 	private Certificate peerCertificate;
+
 	private AsymmetricKeyParameter privateKey;
+
+	private byte[] tlsExporter;
+
 	/**
 	 * <code>tlsInput</code> buffer keeps data decoded from tlsWrapper.
 	 */
 	private ByteBuffer tlsInput = null;
+
 	private byte[] tlsUnique;
 
-	private TLSWrapper fakeWrapper = new TLSWrapper() {
+	private final TLSWrapper fakeWrapper = new TLSWrapper() {
 		@Override
 		public int bytesConsumed() {
 //			(new RuntimeException("DEBUG")).printStackTrace();
@@ -176,6 +198,11 @@ public class BcTLSIO
 		}
 
 		@Override
+		public byte[] getTlsExporterBindingData() {
+			return BcTLSIO.this.tlsExporter;
+		}
+
+		@Override
 		public byte[] getTlsUniqueBindingData() {
 			return BcTLSIO.this.tlsUnique;
 		}
@@ -228,15 +255,15 @@ public class BcTLSIO
 		tlsInput.order(order);
 
 		this.serverProtocol = new TlsServerProtocol();
-		this.server = new TigaseTlsServer(crypto);
 
 		try {
 			loadKeys();
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.log(Level.WARNING, "Cannot load keys!", e);
 			throw new RuntimeException(e);
 		}
 
+		this.server = new DefaultTls13Server(crypto, this.privateKey, this.bcCert);
 		serverProtocol.accept(server);
 
 		//pumpData();
@@ -314,6 +341,16 @@ public class BcTLSIO
 	}
 
 	@Override
+	public void processHandshake(byte[] data) throws IOException {
+		if (log.isLoggable(Level.FINEST)) {
+			log.finest("Process handshake data: " + data.length + " bytes.");
+		}
+		System.out.println("C->S: wrapped bytes: " + Hex.toHexString(data));
+		serverProtocol.offerInput(data);
+		pumpData();
+	}
+
+	@Override
 	public ByteBuffer read(ByteBuffer buff) throws IOException {
 		pumpData();
 		bytesRead = serverProtocol.readInput(buff.array(), buff.position(), buff.remaining());
@@ -334,7 +371,7 @@ public class BcTLSIO
 	@Override
 	public void stop() throws IOException {
 		if (log.isLoggable(Level.FINEST)) {
-			log.finest("Stop called..." + toString());
+			log.finest("Stop called..." + this);
 
 			// Thread.dumpStack();
 		}
@@ -361,14 +398,14 @@ public class BcTLSIO
 	@Override
 	public int write(ByteBuffer buff) throws IOException {
 		int result;
-
-		pumpData();
-
-		if (buff == null) {
-			return io.write(null);
-		}
-
 		try {
+
+			pumpData();
+
+			if (buff == null) {
+				return io.write(null);
+			}
+
 			serverProtocol.writeApplicationData(buff.array(), buff.position(), buff.remaining());
 			result = buff.remaining();
 			buff.position(buff.position() + result);
@@ -377,17 +414,11 @@ public class BcTLSIO
 			pumpData();
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			log.log(Level.WARNING, "Cannot write data!", e);
 			throw new SSLException(e);
 		}
 
 		return result;
-	}
-
-	@Override
-	public void processHandshake(byte[] data) throws IOException {
-		serverProtocol.offerInput(data);
-		pumpData();
 	}
 
 	private X509Certificate[] gen(Certificate chain) {
@@ -405,20 +436,21 @@ public class BcTLSIO
 			}
 			return result;
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.log(Level.WARNING, "Cannot create certificate", e);
 			return null;
 		}
 	}
 
 	private Certificate gen(final java.security.cert.Certificate[] certChain)
 			throws CertificateEncodingException, IOException {
-		TlsCertificate[] arr = new TlsCertificate[certChain.length];
+		CertificateEntry[] arr = new CertificateEntry[certChain.length];
 
 		for (int i = 0; i < certChain.length; i++) {
 			TlsCertificate cc = crypto.createCertificate(certChain[i].getEncoded());
-			arr[i] = cc;
+			arr[i] = new CertificateEntry(cc,null);
 		}
-		return new org.bouncycastle.tls.Certificate(arr);
+		return new org.bouncycastle.tls.Certificate( CertificateType.X509,
+													 TlsUtils.EMPTY_BYTES,arr);
 	}
 
 	private org.bouncycastle.tls.Certificate gen(KeyPair keypair) throws Exception {
@@ -440,7 +472,6 @@ public class BcTLSIO
 				new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth});
 		certificate.addExtension(Extension.extendedKeyUsage, false, usageEx.getEncoded());
 
-// build BouncyCastle certificate
 		ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").build(keypair.getPrivate());
 		X509CertificateHolder holder = certificate.build(signer);
 
@@ -501,44 +532,89 @@ public class BcTLSIO
 		int resOut;
 		int resIn;
 
-		do {
-			++counter;
-			resOut = 0;
-			// copy outgoing data (S->C)
-			int waiting = serverProtocol.getAvailableOutputBytes();
-			if (waiting > 0) {
-				ByteBuffer bb = ByteBuffer.allocate(waiting);
-				int dataLen = serverProtocol.readOutput(bb.array(), 0, bb.array().length);
-				if (dataLen > 0) {
-					resOut += dataLen;
-					// System.out.println("S->C: " + resOut + " wrapped bytes: " + Hex.toHexString(bb.array()));
-					bb.position(resOut);
-					bb.flip();
-					io.write(bb);
+		if (log.isLoggable(Level.FINEST)) {
+			log.finest("Copying data from&to TLS Engine");
+		}
+
+		try {
+			do {
+				++counter;
+				resOut = 0;
+				// copy outgoing data (S->C)
+				int waiting = serverProtocol.getAvailableOutputBytes();
+				if (waiting > 0) {
+					ByteBuffer bb = ByteBuffer.allocate(waiting);
+					int dataLen = serverProtocol.readOutput(bb.array(), 0, bb.array().length);
+					if (dataLen > 0) {
+						resOut += dataLen;
+						System.out.println("S->C: " + resOut + " wrapped bytes: " + Hex.toHexString(bb.array()));
+						bb.position(resOut);
+						bb.flip();
+						io.write(bb);
+					}
 				}
-			}
 
-			// copy received data (C->S)
-			resIn = 0;
-			ByteBuffer bb = io.read(tlsInput);
+				// copy received data (C->S)
+				resIn = 0;
+				ByteBuffer bb = io.read(tlsInput);
 
-			if (io.bytesRead() > 0) {
-				byte[] tmp = getBytes(bb);
-				if (tmp != null && tmp.length > 0) {
-					resIn += tmp.length;
-					// System.out.println("C->S: " + resIn + " wrapped bytes: " + Hex.toHexString(tmp));
-					serverProtocol.offerInput(tmp);
+				if (io.bytesRead() > 0) {
+					byte[] tmp = getBytes(bb);
+					if (tmp != null && tmp.length > 0) {
+						resIn += tmp.length;
+						System.out.println("C->S: " + resIn + " wrapped bytes: " + Hex.toHexString(tmp));
+						serverProtocol.offerInput(tmp);
 
+					}
 				}
-			}
-		} while ((resIn > 0 || resOut > 0) && counter <= 1000);
+			} while ((resIn > 0 || resOut > 0) && counter <= 1000);
+		} catch (IOException e) {
+			log.log(Level.WARNING, "Error on reading/writing data.", e);
+			throw e;
+		} catch (Throwable e) {
+			log.log(Level.WARNING, "Error on reading/writing data.", e);
+			throw new IOException("Data copying exception", e);
+		}
 	}
 
 	private class TigaseTlsServer
 			extends DefaultTlsServer {
 
+		private TlsCredentials m_selectedCredentials;
+
 		public TigaseTlsServer(TlsCrypto crypto) {
 			super(crypto);
+		}
+
+		@Override
+		protected boolean selectCipherSuite(int cipherSuite) throws IOException {
+			TlsCredentials cipherSuiteCredentials = null;
+			final int keyExchangeAlgorithm = TlsUtils.getKeyExchangeAlgorithm(cipherSuite);
+			if(!KeyExchangeAlgorithm.isAnonymous(keyExchangeAlgorithm)){
+				cipherSuiteCredentials = selectCredentials(keyExchangeAlgorithm);
+				if (null == cipherSuiteCredentials)
+					return false;
+			}
+			boolean result = super.selectCipherSuite(cipherSuite);
+			if(result){
+				m_selectedCredentials = cipherSuiteCredentials;
+			}
+			return result;
+		}
+
+		private TlsCredentials selectCredentials(int keyExchangeAlgorithm){
+			switch (keyExchangeAlgorithm){
+				case KeyExchangeAlgorithm.NULL -> {
+					return selectServerCredentials13();
+				}
+				default -> {
+					return null;
+				}
+			}
+		}
+
+		private TlsCredentials selectServerCredentials13() {
+			return null;
 		}
 
 		public CertificateRequest getCertificateRequest() throws IOException {
@@ -550,7 +626,7 @@ public class BcTLSIO
 												   ClientCertificateType.ecdsa_sign};
 
 			Vector serverSigAlgs = null;
-			if (TlsUtils.isSignatureAlgorithmsExtensionAllowed(serverVersion)) {
+			if (protocolVersions[0] != null && TlsUtils.isSignatureAlgorithmsExtensionAllowed(protocolVersions[0])) {
 				serverSigAlgs = TlsUtils.getDefaultSupportedSignatureAlgorithms(context);
 			}
 
@@ -571,6 +647,8 @@ public class BcTLSIO
 
 			return new CertificateRequest(certificateTypes, serverSigAlgs, certificateAuthorities);
 		}
+
+
 
 		@Override
 		public void notifyClientCertificate(Certificate clientCertificate) throws IOException {
@@ -597,6 +675,9 @@ public class BcTLSIO
 			super.notifyHandshakeComplete();
 			BcTLSIO.this.handshakeCompleted = true;
 			BcTLSIO.this.tlsUnique = context.exportChannelBinding(ChannelBinding.tls_unique);
+			BcTLSIO.this.tlsExporter = context.exportChannelBinding(ChannelBinding.tls_exporter);
+			log.warning("DEBUG:  exporter=" + (BcTLSIO.this.tlsExporter != null) + "; tlsUnique=" +
+								(BcTLSIO.this.tlsUnique != null));
 			try {
 				if (eventHandler != null) {
 					eventHandler.handshakeCompleted(fakeWrapper);
@@ -620,6 +701,12 @@ public class BcTLSIO
 			AsymmetricKeyParameter pk = BcTLSIO.this.privateKey;
 			return new BcDefaultTlsCredentialedDecryptor(crypto, crt, pk);
 		}
+
+		@Override
+		public TlsCredentials getCredentials() throws IOException {
+			if(m_selectedCredentials!=null) return m_selectedCredentials; else throw new TlsFatalAlert(AlertDescription.internal_error);
+		}
+
 
 		@Override
 		protected TlsCredentialedSigner getRSASignerCredentials() {
