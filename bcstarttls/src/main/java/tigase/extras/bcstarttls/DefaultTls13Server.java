@@ -2,12 +2,11 @@ package tigase.extras.bcstarttls;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
 import org.bouncycastle.crypto.params.ECKeyParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.tls.*;
-import org.bouncycastle.tls.crypto.TlsCrypto;
 import org.bouncycastle.tls.crypto.TlsCryptoParameters;
+import org.bouncycastle.tls.crypto.impl.bc.BcDefaultTlsCredentialedDecryptor;
 import org.bouncycastle.tls.crypto.impl.bc.BcDefaultTlsCredentialedSigner;
 import org.bouncycastle.tls.crypto.impl.bc.BcTlsCertificate;
 import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
@@ -25,34 +24,26 @@ public class DefaultTls13Server
 		extends DefaultTlsServer {
 
 	private static final Logger log = Logger.getLogger(DefaultTls13Server.class.getName());
-
-	private final static int[] DefaultCipherSuites = new int[]{
-			/*
-			 * TLS 1.3
-			 */
-			CipherSuite.TLS_CHACHA20_POLY1305_SHA256, CipherSuite.TLS_AES_256_GCM_SHA384,
-			CipherSuite.TLS_AES_128_GCM_SHA256,
-
-			/*
-			 * pre-TLS 1.3
-			 */
-			CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
-			CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, CipherSuite.TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-			CipherSuite.TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,
-			CipherSuite.TLS_DHE_RSA_WITH_AES_256_CBC_SHA256, CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
-			CipherSuite.TLS_DHE_RSA_WITH_AES_256_CBC_SHA, CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
-			CipherSuite.TLS_RSA_WITH_AES_256_GCM_SHA384, CipherSuite.TLS_RSA_WITH_AES_128_GCM_SHA256,
-			CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256, CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256,
-			CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA, CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA,};
-	private final TlsCrypto crypto;
-	private final Credentials credentials;
+	private final Collection<X500Name> acceptedIssuers;
+	private final CredentialsProvider credentialsProvider;
+	private final BcTlsCrypto crypto;
+	private final HandshakeCompletedListener handshakeCompletedListener;
+	private final boolean needClientAuth;
+	private final boolean wantClientAuth;
 	private List<X500Name> m_clientTrustedIssuers = null;
 	private List<Integer> m_peerSigSchemes = null;
 
 	private TlsCredentials m_selectedCredentials = null;
+	private Certificate peerCertificate;
 
+	/**
+	 * Checks if the given X500Name matches any of the issuers in the provided list.
+	 *
+	 * @param issuers The list of X500Names representing the issuers.
+	 * @param name The X500Name to check for a match against the issuers.
+	 *
+	 * @return true if a match is found, false otherwise.
+	 */
 	private static boolean matchesIssuers(List<X500Name> issuers, X500Name name) {
 		for (X500Name issuer : issuers) {
 			if (name.equals(issuer)) {
@@ -63,14 +54,45 @@ public class DefaultTls13Server
 	}
 
 	public DefaultTls13Server(BcTlsCrypto crypto, boolean needClientAuth, boolean wantClientAuth,
-							  Collection<X500Name> acceptedIssuers, AsymmetricKeyParameter privateKey,
-							  Certificate bcCert, HandshakeCompletedListener handshakeCompletedListener) {
+							  Collection<X500Name> acceptedIssuers, CredentialsProvider credentialsProvider,
+							  HandshakeCompletedListener handshakeCompletedListener) {
 		super(crypto);
 		this.crypto = crypto;
+		this.handshakeCompletedListener = handshakeCompletedListener;
+		this.credentialsProvider = credentialsProvider;
+		this.needClientAuth = needClientAuth;
+		this.wantClientAuth = wantClientAuth;
+		this.acceptedIssuers = acceptedIssuers;
+	}
 
-		// TODO Fill in m_credentials according to which SignatureScheme values we support e.g.:
-//		m_credentials.put(SignatureScheme.rsa_pkcs1_sha384, new Credentials(bcCert, privateKey));
-		credentials = new Credentials(bcCert, privateKey);
+	public CertificateRequest getCertificateRequest() throws IOException {
+		if (!(needClientAuth || wantClientAuth)) {
+			return null;
+		}
+
+		short[] certificateTypes = new short[]{ClientCertificateType.rsa_sign, ClientCertificateType.dss_sign,
+											   ClientCertificateType.ecdsa_sign};
+
+		//noinspection rawtypes
+		Vector serverSigAlgs = null;
+		if (TlsUtils.isSignatureAlgorithmsExtensionAllowed(context.getServerVersion())) {
+			serverSigAlgs = TlsUtils.getDefaultSupportedSignatureAlgorithms(context);
+		}
+
+		Vector<X500Name> certificateAuthorities = new Vector<>();
+
+//      certificateAuthorities.addElement(TlsTestUtils.loadBcCertificateResource("x509-ca-dsa.pem").getSubject());
+//      certificateAuthorities.addElement(TlsTestUtils.loadBcCertificateResource("x509-ca-ecdsa.pem").getSubject());
+//      certificateAuthorities.addElement(TlsTestUtils.loadBcCertificateResource("x509-ca-rsa.pem").getSubject());
+
+		// All the CA certificates are currently configured with this subject
+		//			certificateAuthorities.addElement(new X500Name("CN=BouncyCastle TLS Test CA"));
+
+		if (acceptedIssuers != null) {
+			certificateAuthorities.addAll(acceptedIssuers);
+		}
+
+		return new CertificateRequest(certificateTypes, serverSigAlgs, certificateAuthorities);
 	}
 
 	@Override
@@ -82,12 +104,46 @@ public class DefaultTls13Server
 		}
 	}
 
+	public Certificate getLocalCertificates() {
+		return credentialsProvider.getCredentials(context).getCertificate();
+	}
+
 	@Override
 	public int getSelectedCipherSuite() throws IOException {
 		@SuppressWarnings("unchecked") final Vector<SignatureAndHashAlgorithm> clientSigAlgs = (Vector<SignatureAndHashAlgorithm>) context.getSecurityParameters()
 				.getClientSigAlgs();
 		m_peerSigSchemes = clientSigAlgs.stream().map(SignatureScheme::from).collect(Collectors.toList());
 		return super.getSelectedCipherSuite();
+	}
+
+	public void notifyClientCertificate(Certificate clientCertificate) throws IOException {
+		this.peerCertificate = clientCertificate;
+	}
+
+	public void notifyHandshakeComplete() throws IOException {
+		super.notifyHandshakeComplete();
+		byte[] tlsUnique;
+		try {
+			tlsUnique = context.exportChannelBinding(ChannelBinding.tls_unique);
+		} catch (Exception e) {
+			tlsUnique = null;
+		}
+		byte[] tlsExporter;
+		try {
+			tlsExporter = context.exportChannelBinding(ChannelBinding.tls_exporter);
+		} catch (Exception e) {
+			tlsExporter = null;
+		}
+
+		try {
+			log.log(Level.SEVERE,
+					"Handshake complete. tlsUnique=" + (tlsUnique != null) + "; tlsExporter=" + (tlsExporter != null) +
+							"; peerCertificate=" + (peerCertificate != null));
+			handshakeCompletedListener.onHandshakeComplete(peerCertificate, tlsUnique, tlsExporter);
+		} catch (Exception e) {
+			log.log(Level.WARNING, "Cannot handle handshakeCompleted handler", e);
+			throw new TlsFatalAlert(AlertDescription.internal_error);
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -102,9 +158,18 @@ public class DefaultTls13Server
 		m_clientTrustedIssuers = v.stream().toList();
 	}
 
+	protected TlsCredentialedDecryptor getRSAEncryptionCredentials() {
+		final var credentials = credentialsProvider.getCredentials(context);
+		return new BcDefaultTlsCredentialedDecryptor(crypto, credentials.getCertificate(), credentials.getPrivateKey());
+	}
+
 	@Override
-	protected int[] getSupportedCipherSuites() {
-		return TlsUtils.getSupportedCipherSuites(crypto, DefaultCipherSuites);
+	protected TlsCredentialedSigner getRSASignerCredentials() {
+		TlsCryptoParameters crpP = new TlsCryptoParameters(context);
+		SignatureAndHashAlgorithm alg = new SignatureAndHashAlgorithm(HashAlgorithm.sha1, SignatureAlgorithm.rsa);
+		final var credentials = credentialsProvider.getCredentials(context);
+		return new BcDefaultTlsCredentialedSigner(crpP, crypto, credentials.getPrivateKey(),
+												  credentials.getCertificate(), alg);
 	}
 
 	@Override
@@ -124,19 +189,19 @@ public class DefaultTls13Server
 		return result;
 	}
 
-	private TlsCredentials createCredentialedSigner13(final SignatureAndHashAlgorithm signatureScheme,
-													  final Credentials credentials) {
-		if (!(crypto instanceof BcTlsCrypto)) {
+	private TlsCredentials createCredentialedSigner13(final SignatureAndHashAlgorithm signatureScheme) {
+		if (crypto == null) {
 			throw new RuntimeException("Crypto in not BcTlsCrypto");
 		}
 		log.finest(() -> "selected peer sig schema " + signatureScheme);
-		return new BcDefaultTlsCredentialedSigner(new TlsCryptoParameters(context), (BcTlsCrypto) crypto,
-												  credentials.privateKey, credentials.certificate, signatureScheme);
+		final var credentials = credentialsProvider.getCredentials(context);
+		return new BcDefaultTlsCredentialedSigner(new TlsCryptoParameters(context), crypto, credentials.getPrivateKey(),
+												  credentials.getCertificate(), signatureScheme);
 	}
 
-	private boolean isSuitableCredentials(final Credentials credentials, final SignatureAndHashAlgorithm algorithm)
-			throws IOException {
-		var certificate = credentials.certificate;
+	private boolean isSuitableCredentials(final SignatureAndHashAlgorithm algorithm) throws IOException {
+		final var credentials = credentialsProvider.getCredentials(context);
+		var certificate = credentials.getCertificate();
 		if (certificate.isEmpty()) {
 			return false;
 		}
@@ -145,8 +210,8 @@ public class DefaultTls13Server
 
 		// check if private key matches signature schema
 		// TODO: maybe it is not needed and certificate key check done below would be enough? that would simplify things a lot
-		if ((!(SignatureScheme.isRSAPSS(algId) && credentials.privateKey instanceof RSAKeyParameters)) &&
-				(!(SignatureScheme.isECDSA(algId) && credentials.privateKey instanceof ECKeyParameters))) {
+		if ((!(SignatureScheme.isRSAPSS(algId) && credentials.getPrivateKey() instanceof RSAKeyParameters)) &&
+				(!(SignatureScheme.isECDSA(algId) && credentials.getPrivateKey() instanceof ECKeyParameters))) {
 			return false;
 		}
 
@@ -158,7 +223,6 @@ public class DefaultTls13Server
 		if (m_clientTrustedIssuers == null || m_clientTrustedIssuers.isEmpty()) {
 			return true;
 		}
-		var crypto = (BcTlsCrypto) this.crypto;
 		var chain = certificate.getCertificateList();
 		int pos = chain.length;
 		while (--pos >= 0) {
@@ -174,17 +238,18 @@ public class DefaultTls13Server
 	}
 
 	private TlsCredentials selectCredentials(int keyExchangeAlgorithm) throws IOException {
-		switch (keyExchangeAlgorithm) {
-			case KeyExchangeAlgorithm.NULL -> {
-				return selectServerCredentials13();
-			}
-			default -> {
-				return null;
-			}
-		}
+		return switch (keyExchangeAlgorithm) {
+			case KeyExchangeAlgorithm.NULL -> selectServerCredentials13();
+			case KeyExchangeAlgorithm.DHE_RSA, KeyExchangeAlgorithm.ECDHE_RSA -> getRSASignerCredentials();
+			case KeyExchangeAlgorithm.DHE_DSS -> getDSASignerCredentials();
+			case KeyExchangeAlgorithm.ECDHE_ECDSA -> getECDSASignerCredentials();
+			case KeyExchangeAlgorithm.RSA -> getRSAEncryptionCredentials();
+			default -> null;
+		};
 	}
 
 	private TlsCredentials selectServerCredentials13() throws IOException {
+
 		if (log.isLoggable(Level.FINEST)) {
 			log.finest(() -> "selecting peer sig schema from " +
 					m_peerSigSchemes.stream().map(SignatureScheme::getSignatureAndHashAlgorithm).toList());
@@ -196,26 +261,16 @@ public class DefaultTls13Server
 			if (current == null) {
 				continue;
 			}
-			if (!isSuitableCredentials(credentials, current)) {
+			if (!isSuitableCredentials(current)) {
 				continue;
 			}
 			// TODO: we are using the last one as in my tests, last one had best hash algorithm, but that may be wrong in theory we could use first found
 			best = current;
 		}
 		if (best != null) {
-			return createCredentialedSigner13(best, credentials);
+			return createCredentialedSigner13(best);
 		}
 		return null;
 	}
 
-	private static class Credentials {
-
-		final Certificate certificate;
-		final AsymmetricKeyParameter privateKey;
-
-		public Credentials(Certificate certificate, AsymmetricKeyParameter privateKey) {
-			this.certificate = certificate;
-			this.privateKey = privateKey;
-		}
-	}
 }

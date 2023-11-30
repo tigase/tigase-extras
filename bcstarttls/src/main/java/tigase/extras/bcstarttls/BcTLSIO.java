@@ -18,23 +18,10 @@
 package tigase.extras.bcstarttls;
 
 import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.X500NameBuilder;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.*;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
-import org.bouncycastle.crypto.params.AsymmetricKeyParameter;
-import org.bouncycastle.crypto.util.PrivateKeyFactory;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.tls.*;
 import org.bouncycastle.tls.Certificate;
+import org.bouncycastle.tls.TlsServerProtocol;
 import org.bouncycastle.tls.crypto.TlsCertificate;
 import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
-import org.bouncycastle.util.encoders.Hex;
 import tigase.cert.CertCheckResult;
 import tigase.cert.CertificateUtil;
 import tigase.io.*;
@@ -43,18 +30,14 @@ import tigase.stats.StatisticsList;
 import javax.net.ssl.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
-import java.security.KeyPair;
 import java.security.SecureRandom;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,23 +46,16 @@ public class BcTLSIO
 
 	public static final String TLS_CAPS = "tls-caps";
 	private static final Logger log = Logger.getLogger(BcTLSIO.class.getName());
-	private final CertificateContainerIfc certificateContainer;
 	private final TrustManager[] clientTrustManagers;
-	private final BcTlsCrypto crypto;
-	private final TLSEventHandler eventHandler;
-	private final String hostname;
 	private final boolean needClientAuth;
-	private final SecureRandom random;
-	private final AbstractTlsServer server;
+	private final DefaultTls13Server server;
 	private final TlsServerProtocol serverProtocol;
-	private byte[] tlsExporter;
 	private final boolean wantClientAuth;
-	private Certificate bcCert;
 	private int bytesRead = 0;
 	private boolean handshakeCompleted = false;
 	private IOInterface io = null;
 	private Certificate peerCertificate;
-	private AsymmetricKeyParameter privateKey;
+	private byte[] tlsExporter;
 	/**
 	 * <code>tlsInput</code> buffer keeps data decoded from tlsWrapper.
 	 */
@@ -142,8 +118,7 @@ public class BcTLSIO
 
 		@Override
 		public java.security.cert.Certificate[] getLocalCertificates() {
-			java.security.cert.Certificate[] c = gen(BcTLSIO.this.bcCert);
-			return c;
+			return gen(BcTLSIO.this.server.getLocalCertificates());
 		}
 
 		@Override
@@ -162,9 +137,7 @@ public class BcTLSIO
 				return null;
 			}
 
-			java.security.cert.Certificate[] result = gen(BcTLSIO.this.peerCertificate);
-
-			return result;
+			return gen(BcTLSIO.this.peerCertificate);
 		}
 
 		@Override
@@ -215,36 +188,26 @@ public class BcTLSIO
 
 	public BcTLSIO(final CertificateContainerIfc certificateContainer, final TLSEventHandler eventHandler,
 				   final IOInterface ioi, String hostname, final ByteOrder order, boolean wantClientAuth,
-				   boolean needClientAuth, String[] enabledCiphers, String[] enabledProtocols,
-				   TrustManager[] x509TrustManagers) throws IOException {
+				   boolean needClientAuth, TrustManager[] x509TrustManagers) throws IOException {
 		this.clientTrustManagers = x509TrustManagers;
 		this.wantClientAuth = wantClientAuth;
 		this.needClientAuth = needClientAuth;
-		this.certificateContainer = certificateContainer;
-		this.eventHandler = eventHandler;
-		this.random = new SecureRandom();
-		this.crypto = new BcTlsCrypto(random);
-		this.hostname = hostname;
+		SecureRandom random = new SecureRandom();
+		BcTlsCrypto crypto = new BcTlsCrypto(random);
 		io = ioi;
 		tlsInput = ByteBuffer.allocate(2048);
 		tlsInput.order(order);
 
-		try {
-			loadKeys();
-		} catch (Exception e) {
-			log.log(Level.WARNING, "Cannot load keys!", e);
-			throw new RuntimeException(e);
-		}
-
 		this.serverProtocol = new TlsServerProtocol();
-		this.server = new DefaultTls13Server(crypto, needClientAuth, wantClientAuth, getAcceptedIssuers(), privateKey,
-											bcCert, (clientCertificate, tlsUnique, tlsExporter) -> {
-			BcTLSIO.this.peerCertificate = clientCertificate;
-			BcTLSIO.this.tlsUnique = tlsUnique;
-			BcTLSIO.this.tlsExporter = tlsExporter;
-			BcTLSIO.this.handshakeCompleted = true;
-			eventHandler.handshakeCompleted(fakeWrapper);
-		});
+		var credentials = new SimpleCredentialsProvider(crypto, certificateContainer, hostname);
+		this.server = new DefaultTls13Server(crypto, needClientAuth, wantClientAuth, getAcceptedIssuers(), credentials,
+											 (clientCertificate, tlsUnique, tlsExporter) -> {
+												 BcTLSIO.this.peerCertificate = clientCertificate;
+												 BcTLSIO.this.tlsUnique = tlsUnique;
+												 BcTLSIO.this.tlsExporter = tlsExporter;
+												 BcTLSIO.this.handshakeCompleted = true;
+												 eventHandler.handshakeCompleted(fakeWrapper);
+											 });
 
 		serverProtocol.accept(server);
 
@@ -327,7 +290,7 @@ public class BcTLSIO
 		if (log.isLoggable(Level.FINEST)) {
 			log.finest("Process handshake data: " + data.length + " bytes.");
 		}
-		System.out.println("C->S: wrapped bytes: " + Hex.toHexString(data));
+//		System.out.println("C->S: wrapped bytes: " + Hex.toHexString(data));
 		serverProtocol.offerInput(data);
 		pumpData();
 	}
@@ -423,65 +386,6 @@ public class BcTLSIO
 		}
 	}
 
-	private Certificate gen13(final java.security.cert.Certificate[] certChain)
-			throws CertificateEncodingException, IOException {
-		CertificateEntry[] arr = new CertificateEntry[certChain.length];
-
-		for (int i = 0; i < certChain.length; i++) {
-			TlsCertificate cc = crypto.createCertificate(certChain[i].getEncoded());
-			arr[i] = new CertificateEntry(cc,null);
-		}
-		return new org.bouncycastle.tls.Certificate(CertificateType.X509,
-													TlsUtils.EMPTY_BYTES, arr);
-	}
-
-	private Certificate gen12(final java.security.cert.Certificate[] certChain)
-			throws CertificateEncodingException, IOException {
-		TlsCertificate[] arr = new TlsCertificate[certChain.length];
-
-		for (int i = 0; i < certChain.length; i++) {
-			TlsCertificate cc = crypto.createCertificate(certChain[i].getEncoded());
-			arr[i] = cc;
-		}
-		return new org.bouncycastle.tls.Certificate(arr);
-	}
-
-
-	private org.bouncycastle.tls.Certificate gen(KeyPair keypair) throws Exception {
-
-// fill in certificate fields
-		X500Name subject = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, hostname).build();
-		byte[] id = new byte[20];
-		random.nextBytes(id);
-		BigInteger serial = new BigInteger(160, random);
-		X509v3CertificateBuilder certificate = new JcaX509v3CertificateBuilder(subject, serial, new Date(), new Date(
-				(new Date()).getTime() + 1000 * 60 * 10000), subject, keypair.getPublic());
-		certificate.addExtension(Extension.subjectKeyIdentifier, false, id);
-		certificate.addExtension(Extension.authorityKeyIdentifier, false, id);
-		BasicConstraints constraints = new BasicConstraints(true);
-		certificate.addExtension(Extension.basicConstraints, true, constraints.getEncoded());
-		KeyUsage usage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.digitalSignature);
-		certificate.addExtension(Extension.keyUsage, false, usage.getEncoded());
-		ExtendedKeyUsage usageEx = new ExtendedKeyUsage(
-				new KeyPurposeId[]{KeyPurposeId.id_kp_serverAuth, KeyPurposeId.id_kp_clientAuth});
-		certificate.addExtension(Extension.extendedKeyUsage, false, usageEx.getEncoded());
-
-		ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").build(keypair.getPrivate());
-		X509CertificateHolder holder = certificate.build(signer);
-
-// convert to JRE certificate
-		JcaX509CertificateConverter converter = new JcaX509CertificateConverter();
-		converter.setProvider(new BouncyCastleProvider());
-		X509Certificate x509 = converter.getCertificate(holder);
-
-		TlsCertificate c = crypto.createCertificate(holder.getEncoded());
-		TlsCertificate[] arr = new TlsCertificate[]{c};
-
-		org.bouncycastle.tls.Certificate zz = new org.bouncycastle.tls.Certificate(arr);
-
-		return zz;
-	}
-
 	private Collection<X500Name> getAcceptedIssuers() {
 		if (clientTrustManagers != null) {
 			ArrayList<X500Name> result = new ArrayList<>();
@@ -490,7 +394,7 @@ public class BcTLSIO
 				if (clientTrustManager instanceof X509TrustManager) {
 					X509Certificate[] iss = ((X509TrustManager) clientTrustManager).getAcceptedIssuers();
 					for (X509Certificate certificate : iss) {
-						X500Name n = new X500Name(certificate.getSubjectDN().toString());
+						X500Name n = new X500Name(certificate.getSubjectX500Principal().toString());
 						result.add(n);
 					}
 				}
@@ -515,12 +419,6 @@ public class BcTLSIO
 		return tmp;
 	}
 
-	private void loadKeys() throws Exception {
-		tigase.cert.CertificateEntry kk = certificateContainer.getCertificateEntry(hostname);
-		this.privateKey = PrivateKeyFactory.createKey(kk.getPrivateKey().getEncoded());
-		this.bcCert = gen13(kk.getCertChain());
-	}
-
 	private void pumpData() throws IOException {
 		int counter = 0;
 		int resOut;
@@ -541,7 +439,7 @@ public class BcTLSIO
 					int dataLen = serverProtocol.readOutput(bb.array(), 0, bb.array().length);
 					if (dataLen > 0) {
 						resOut += dataLen;
-						System.out.println("S->C: " + resOut + " wrapped bytes: " + Hex.toHexString(bb.array()));
+//						System.out.println("S->C: " + resOut + " wrapped bytes: " + Hex.toHexString(bb.array()));
 						bb.position(resOut);
 						bb.flip();
 						io.write(bb);
@@ -556,7 +454,7 @@ public class BcTLSIO
 					byte[] tmp = getBytes(bb);
 					if (tmp != null && tmp.length > 0) {
 						resIn += tmp.length;
-						System.out.println("C->S: " + resIn + " wrapped bytes: " + Hex.toHexString(tmp));
+//						System.out.println("C->S: " + resIn + " wrapped bytes: " + Hex.toHexString(tmp));
 						serverProtocol.offerInput(tmp);
 
 					}
