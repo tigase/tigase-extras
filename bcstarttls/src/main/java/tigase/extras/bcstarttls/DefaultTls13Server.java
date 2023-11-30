@@ -13,6 +13,7 @@ import org.bouncycastle.tls.crypto.impl.bc.BcTlsCertificate;
 import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Vector;
@@ -21,13 +22,30 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class DefaultTls13Server
-		extends AbstractTlsServer {
+		extends DefaultTlsServer {
 
 	private static final Logger log = Logger.getLogger(DefaultTls13Server.class.getName());
 
-	private final static int[] DefaultCipherSuites = new int[]{CipherSuite.TLS_AES_256_GCM_SHA384,
-															   CipherSuite.TLS_AES_128_GCM_SHA256,
-															   CipherSuite.TLS_CHACHA20_POLY1305_SHA256,};
+	private final static int[] DefaultCipherSuites = new int[]{
+			/*
+			 * TLS 1.3
+			 */
+			CipherSuite.TLS_CHACHA20_POLY1305_SHA256, CipherSuite.TLS_AES_256_GCM_SHA384,
+			CipherSuite.TLS_AES_128_GCM_SHA256,
+
+			/*
+			 * pre-TLS 1.3
+			 */
+			CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256, CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+			CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, CipherSuite.TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+			CipherSuite.TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,
+			CipherSuite.TLS_DHE_RSA_WITH_AES_256_CBC_SHA256, CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+			CipherSuite.TLS_DHE_RSA_WITH_AES_256_CBC_SHA, CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+			CipherSuite.TLS_RSA_WITH_AES_256_GCM_SHA384, CipherSuite.TLS_RSA_WITH_AES_128_GCM_SHA256,
+			CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA256, CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA256,
+			CipherSuite.TLS_RSA_WITH_AES_256_CBC_SHA, CipherSuite.TLS_RSA_WITH_AES_128_CBC_SHA,};
 	private final TlsCrypto crypto;
 	private final Credentials credentials;
 	private List<X500Name> m_clientTrustedIssuers = null;
@@ -44,7 +62,9 @@ public class DefaultTls13Server
 		return false;
 	}
 
-	public DefaultTls13Server(TlsCrypto crypto, AsymmetricKeyParameter privateKey, Certificate bcCert) {
+	public DefaultTls13Server(BcTlsCrypto crypto, boolean needClientAuth, boolean wantClientAuth,
+							  Collection<X500Name> acceptedIssuers, AsymmetricKeyParameter privateKey,
+							  Certificate bcCert, HandshakeCompletedListener handshakeCompletedListener) {
 		super(crypto);
 		this.crypto = crypto;
 
@@ -104,17 +124,18 @@ public class DefaultTls13Server
 		return result;
 	}
 
-	private TlsCredentials createCredentialedSigner13(final SignatureAndHashAlgorithm signatureScheme, final Credentials credentials) {
+	private TlsCredentials createCredentialedSigner13(final SignatureAndHashAlgorithm signatureScheme,
+													  final Credentials credentials) {
 		if (!(crypto instanceof BcTlsCrypto)) {
 			throw new RuntimeException("Crypto in not BcTlsCrypto");
 		}
 		log.finest(() -> "selected peer sig schema " + signatureScheme);
 		return new BcDefaultTlsCredentialedSigner(new TlsCryptoParameters(context), (BcTlsCrypto) crypto,
-												  credentials.privateKey, credentials.certificate,
-												  signatureScheme);
+												  credentials.privateKey, credentials.certificate, signatureScheme);
 	}
-	
-	private boolean isSuitableCredentials(final Credentials credentials, final SignatureAndHashAlgorithm algorithm) throws IOException {
+
+	private boolean isSuitableCredentials(final Credentials credentials, final SignatureAndHashAlgorithm algorithm)
+			throws IOException {
 		var certificate = credentials.certificate;
 		if (certificate.isEmpty()) {
 			return false;
@@ -165,7 +186,8 @@ public class DefaultTls13Server
 
 	private TlsCredentials selectServerCredentials13() throws IOException {
 		if (log.isLoggable(Level.FINEST)) {
-			log.finest(() -> "selecting peer sig schema from " + m_peerSigSchemes.stream().map(SignatureScheme::getSignatureAndHashAlgorithm).toList());
+			log.finest(() -> "selecting peer sig schema from " +
+					m_peerSigSchemes.stream().map(SignatureScheme::getSignatureAndHashAlgorithm).toList());
 		}
 
 		SignatureAndHashAlgorithm best = null;

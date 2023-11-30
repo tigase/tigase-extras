@@ -45,6 +45,21 @@ public class BCSSLContextContainer
 						   needClientAuth, getEnabledCiphers(), getEnabledProtocols(), x509TrustManagers);
 	}
 
+//	@Override
+//	public IOInterface createIoInterface(String protocol, String local_hostname, String remote_hostname, int port,
+//										 boolean clientMode, boolean wantClientAuth, boolean needClientAuth,
+//										 ByteOrder byteOrder, TrustManager[] x509TrustManagers,
+//										 TLSEventHandler eventHandler, IOInterface socketIO,
+//										 CertificateContainerIfc certificateContainer) throws IOException {
+//		setParent(null);
+//		SSLContext sslContext = getSSLContext(protocol, local_hostname, clientMode, x509TrustManagers);
+//		TLSWrapper wrapper = new BCTLSWrapper(sslContext, eventHandler, remote_hostname, port, clientMode,
+//												wantClientAuth, needClientAuth, getEnabledCiphers(local_hostname),
+//												getEnabledProtocols(local_hostname, clientMode));
+//		return new TLSIO(socketIO, wrapper, byteOrder);
+//	}
+
+
 	@Override
 	public void initialize() {
 		log.config("Installing BouncyCastle provider");

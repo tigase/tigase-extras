@@ -30,13 +30,9 @@ import org.bouncycastle.crypto.util.PrivateKeyFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.tls.Certificate;
 import org.bouncycastle.tls.*;
+import org.bouncycastle.tls.Certificate;
 import org.bouncycastle.tls.crypto.TlsCertificate;
-import org.bouncycastle.tls.crypto.TlsCrypto;
-import org.bouncycastle.tls.crypto.TlsCryptoParameters;
-import org.bouncycastle.tls.crypto.impl.bc.BcDefaultTlsCredentialedDecryptor;
-import org.bouncycastle.tls.crypto.impl.bc.BcDefaultTlsCredentialedSigner;
 import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
 import org.bouncycastle.util.encoders.Hex;
 import tigase.cert.CertCheckResult;
@@ -59,7 +55,6 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -67,48 +62,28 @@ public class BcTLSIO
 		implements IOInterface, TLSIOIfc {
 
 	public static final String TLS_CAPS = "tls-caps";
-
 	private static final Logger log = Logger.getLogger(BcTLSIO.class.getName());
-
 	private final CertificateContainerIfc certificateContainer;
-
 	private final TrustManager[] clientTrustManagers;
-
 	private final BcTlsCrypto crypto;
-
 	private final TLSEventHandler eventHandler;
-
 	private final String hostname;
-
 	private final boolean needClientAuth;
-
 	private final SecureRandom random;
-
 	private final AbstractTlsServer server;
-
 	private final TlsServerProtocol serverProtocol;
-
-	private final boolean wantClientAuth;
-
-	private Certificate bcCert;
-
-	private int bytesRead = 0;
-
-	private boolean handshakeCompleted = false;
-
-	private IOInterface io = null;
-
-	private Certificate peerCertificate;
-
-	private AsymmetricKeyParameter privateKey;
-
 	private byte[] tlsExporter;
-
+	private final boolean wantClientAuth;
+	private Certificate bcCert;
+	private int bytesRead = 0;
+	private boolean handshakeCompleted = false;
+	private IOInterface io = null;
+	private Certificate peerCertificate;
+	private AsymmetricKeyParameter privateKey;
 	/**
 	 * <code>tlsInput</code> buffer keeps data decoded from tlsWrapper.
 	 */
 	private ByteBuffer tlsInput = null;
-
 	private byte[] tlsUnique;
 
 	private final TLSWrapper fakeWrapper = new TLSWrapper() {
@@ -254,8 +229,6 @@ public class BcTLSIO
 		tlsInput = ByteBuffer.allocate(2048);
 		tlsInput.order(order);
 
-		this.serverProtocol = new TlsServerProtocol();
-
 		try {
 			loadKeys();
 		} catch (Exception e) {
@@ -263,7 +236,16 @@ public class BcTLSIO
 			throw new RuntimeException(e);
 		}
 
-		this.server = new DefaultTls13Server(crypto, this.privateKey, this.bcCert);
+		this.serverProtocol = new TlsServerProtocol();
+		this.server = new DefaultTls13Server(crypto, needClientAuth, wantClientAuth, getAcceptedIssuers(), privateKey,
+											bcCert, (clientCertificate, tlsUnique, tlsExporter) -> {
+			BcTLSIO.this.peerCertificate = clientCertificate;
+			BcTLSIO.this.tlsUnique = tlsUnique;
+			BcTLSIO.this.tlsExporter = tlsExporter;
+			BcTLSIO.this.handshakeCompleted = true;
+			eventHandler.handshakeCompleted(fakeWrapper);
+		});
+
 		serverProtocol.accept(server);
 
 		//pumpData();
@@ -441,7 +423,7 @@ public class BcTLSIO
 		}
 	}
 
-	private Certificate gen(final java.security.cert.Certificate[] certChain)
+	private Certificate gen13(final java.security.cert.Certificate[] certChain)
 			throws CertificateEncodingException, IOException {
 		CertificateEntry[] arr = new CertificateEntry[certChain.length];
 
@@ -449,9 +431,21 @@ public class BcTLSIO
 			TlsCertificate cc = crypto.createCertificate(certChain[i].getEncoded());
 			arr[i] = new CertificateEntry(cc,null);
 		}
-		return new org.bouncycastle.tls.Certificate( CertificateType.X509,
-													 TlsUtils.EMPTY_BYTES,arr);
+		return new org.bouncycastle.tls.Certificate(CertificateType.X509,
+													TlsUtils.EMPTY_BYTES, arr);
 	}
+
+	private Certificate gen12(final java.security.cert.Certificate[] certChain)
+			throws CertificateEncodingException, IOException {
+		TlsCertificate[] arr = new TlsCertificate[certChain.length];
+
+		for (int i = 0; i < certChain.length; i++) {
+			TlsCertificate cc = crypto.createCertificate(certChain[i].getEncoded());
+			arr[i] = cc;
+		}
+		return new org.bouncycastle.tls.Certificate(arr);
+	}
+
 
 	private org.bouncycastle.tls.Certificate gen(KeyPair keypair) throws Exception {
 
@@ -524,7 +518,7 @@ public class BcTLSIO
 	private void loadKeys() throws Exception {
 		tigase.cert.CertificateEntry kk = certificateContainer.getCertificateEntry(hostname);
 		this.privateKey = PrivateKeyFactory.createKey(kk.getPrivateKey().getEncoded());
-		this.bcCert = gen(kk.getCertChain());
+		this.bcCert = gen13(kk.getCertChain());
 	}
 
 	private void pumpData() throws IOException {
@@ -574,148 +568,6 @@ public class BcTLSIO
 		} catch (Throwable e) {
 			log.log(Level.WARNING, "Error on reading/writing data.", e);
 			throw new IOException("Data copying exception", e);
-		}
-	}
-
-	private class TigaseTlsServer
-			extends DefaultTlsServer {
-
-		private TlsCredentials m_selectedCredentials;
-
-		public TigaseTlsServer(TlsCrypto crypto) {
-			super(crypto);
-		}
-
-		@Override
-		protected boolean selectCipherSuite(int cipherSuite) throws IOException {
-			TlsCredentials cipherSuiteCredentials = null;
-			final int keyExchangeAlgorithm = TlsUtils.getKeyExchangeAlgorithm(cipherSuite);
-			if(!KeyExchangeAlgorithm.isAnonymous(keyExchangeAlgorithm)){
-				cipherSuiteCredentials = selectCredentials(keyExchangeAlgorithm);
-				if (null == cipherSuiteCredentials)
-					return false;
-			}
-			boolean result = super.selectCipherSuite(cipherSuite);
-			if(result){
-				m_selectedCredentials = cipherSuiteCredentials;
-			}
-			return result;
-		}
-
-		private TlsCredentials selectCredentials(int keyExchangeAlgorithm){
-			switch (keyExchangeAlgorithm){
-				case KeyExchangeAlgorithm.NULL -> {
-					return selectServerCredentials13();
-				}
-				default -> {
-					return null;
-				}
-			}
-		}
-
-		private TlsCredentials selectServerCredentials13() {
-			return null;
-		}
-
-		public CertificateRequest getCertificateRequest() throws IOException {
-			if (!(needClientAuth || wantClientAuth)) {
-				return null;
-			}
-
-			short[] certificateTypes = new short[]{ClientCertificateType.rsa_sign, ClientCertificateType.dss_sign,
-												   ClientCertificateType.ecdsa_sign};
-
-			Vector serverSigAlgs = null;
-			if (protocolVersions[0] != null && TlsUtils.isSignatureAlgorithmsExtensionAllowed(protocolVersions[0])) {
-				serverSigAlgs = TlsUtils.getDefaultSupportedSignatureAlgorithms(context);
-			}
-
-			Vector certificateAuthorities = new Vector();
-
-			Collection<X500Name> acceptedIssuers = BcTLSIO.this.getAcceptedIssuers();
-
-//      certificateAuthorities.addElement(TlsTestUtils.loadBcCertificateResource("x509-ca-dsa.pem").getSubject());
-//      certificateAuthorities.addElement(TlsTestUtils.loadBcCertificateResource("x509-ca-ecdsa.pem").getSubject());
-//      certificateAuthorities.addElement(TlsTestUtils.loadBcCertificateResource("x509-ca-rsa.pem").getSubject());
-
-			// All the CA certificates are currently configured with this subject
-			//			certificateAuthorities.addElement(new X500Name("CN=BouncyCastle TLS Test CA"));
-
-			if (acceptedIssuers != null) {
-				certificateAuthorities.addAll(acceptedIssuers);
-			}
-
-			return new CertificateRequest(certificateTypes, serverSigAlgs, certificateAuthorities);
-		}
-
-
-
-		@Override
-		public void notifyClientCertificate(Certificate clientCertificate) throws IOException {
-			BcTLSIO.this.peerCertificate = clientCertificate;
-//				try {
-//					X509Certificate[] chain = gen(clientCertificate);
-//					if (clientTrustManagers != null) {
-//						for (TrustManager ctm : clientTrustManagers) {
-//							if (ctm instanceof X509TrustManager) {
-//								((X509TrustManager) ctm).checkClientTrusted(chain, "RSA");
-//							} else {
-//								throw new RuntimeException("Unsupported type of TrustManager " + ctm);
-//							}
-//						}
-//					}
-//				} catch (Exception e) {
-//					log.log(Level.FINE, "Client certificate is probably untrusted", e);
-//					throw new TlsFatalAlert(AlertDescription.certificate_unknown);
-//				}
-		}
-
-		@Override
-		public void notifyHandshakeComplete() throws IOException {
-			super.notifyHandshakeComplete();
-			BcTLSIO.this.handshakeCompleted = true;
-			BcTLSIO.this.tlsUnique = context.exportChannelBinding(ChannelBinding.tls_unique);
-			BcTLSIO.this.tlsExporter = context.exportChannelBinding(ChannelBinding.tls_exporter);
-			log.warning("DEBUG:  exporter=" + (BcTLSIO.this.tlsExporter != null) + "; tlsUnique=" +
-								(BcTLSIO.this.tlsUnique != null));
-			try {
-				if (eventHandler != null) {
-					eventHandler.handshakeCompleted(fakeWrapper);
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				log.log(Level.WARNING, "Cannot handle handshakeCompleted handler", e);
-				throw new TlsFatalAlert(AlertDescription.internal_error);
-			}
-		}
-
-		@Override
-		public void notifySecureRenegotiation(boolean secureRenegotiation) throws IOException {
-			// This is required, since the default implementation throws an error if secure reneg is not
-			// supported
-		}
-
-		@Override
-		protected TlsCredentialedDecryptor getRSAEncryptionCredentials() {
-			org.bouncycastle.tls.Certificate crt = BcTLSIO.this.bcCert;
-			AsymmetricKeyParameter pk = BcTLSIO.this.privateKey;
-			return new BcDefaultTlsCredentialedDecryptor(crypto, crt, pk);
-		}
-
-		@Override
-		public TlsCredentials getCredentials() throws IOException {
-			if(m_selectedCredentials!=null) return m_selectedCredentials; else throw new TlsFatalAlert(AlertDescription.internal_error);
-		}
-
-
-		@Override
-		protected TlsCredentialedSigner getRSASignerCredentials() {
-			TlsCryptoParameters crpP = new TlsCryptoParameters(context);
-			AsymmetricKeyParameter pk = BcTLSIO.this.privateKey;
-			org.bouncycastle.tls.Certificate crt = BcTLSIO.this.bcCert;
-			SignatureAndHashAlgorithm alg = new SignatureAndHashAlgorithm(HashAlgorithm.sha1, SignatureAlgorithm.rsa);
-
-			return new BcDefaultTlsCredentialedSigner(crpP, crypto, pk, crt, alg);
 		}
 	}
 
