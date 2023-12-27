@@ -95,6 +95,11 @@ public class PEMCertificateContainer
 	}
 
 	@Override
+	public void addCertificates(CertificateEntity certificateEntity) throws CertificateParsingException {
+		kmfs.clear();
+	}
+
+	@Override
 	public KeyManager[] createCertificate(String s)
 			throws NoSuchAlgorithmException, CertificateException, SignatureException, NoSuchProviderException,
 				   InvalidKeyException, IOException, UnrecoverableKeyException, KeyStoreException {
