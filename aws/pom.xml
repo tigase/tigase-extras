@@ -12,6 +12,8 @@
     </properties>
     <artifactId>tigase-extras-aws</artifactId>
 
+    <packaging>bundle</packaging>
+
     <name>Tigase Server Extras for AWS</name>
     
     <dependencies>
