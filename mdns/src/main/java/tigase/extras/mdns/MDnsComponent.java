@@ -1,4 +1,4 @@
-/*
+package tigase.extras.mdns;/*
  * Tigase Server Extras mDNS support - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *
@@ -302,7 +302,7 @@ public class MDnsComponent
 			AbstractHttpServer.PortConfigBean[] portBeans = (AbstractHttpServer.PortConfigBean[]) f.get(portsBean);
 			if (portBeans != null) {
 				for (AbstractHttpServer.PortConfigBean portConfigBean : portBeans) {
-					consumer.accept(portConfigBean.getSocket(), portConfigBean.getPort());
+					consumer.accept(portConfigBean.getSocket(), Integer.valueOf(portConfigBean.getPort()));
 				}
 			}
 		} catch (Exception ex) {
