@@ -35,6 +35,7 @@
         <module>mongodb</module>
         <module>bcstarttls</module>
         <module>aws</module>
+        <module>ldap</module>
         <module>all</module>
     </modules>
 
@@ -115,14 +116,14 @@
         <dependency>
             <groupId>tigase</groupId>
             <artifactId>tigase-server</artifactId>
-            <version>8.4.0</version>
+            <version>8.5.0-SNAPSHOT</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>tigase</groupId>
             <artifactId>tigase-server</artifactId>
-            <version>8.4.0</version>
+            <version>8.5.0-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
             <optional>true</optional>
