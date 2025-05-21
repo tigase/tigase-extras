@@ -27,12 +27,9 @@ import tigase.conf.LoggingBean;
 import tigase.db.TigaseDBException;
 import tigase.eventbus.EventBusFactory;
 import tigase.io.CertificateContainer;
-import tigase.io.SSLContextContainer;
 import tigase.kernel.AbstractKernelWithUserRepositoryTestCase;
 import tigase.kernel.DefaultTypesConverter;
-import tigase.kernel.beans.config.AbstractBeanConfigurator;
 import tigase.kernel.core.Kernel;
-import tigase.net.SocketType;
 import tigase.vhosts.DummyVHostManager;
 import tigase.xmpp.jid.BareJID;
 
@@ -81,20 +78,8 @@ public class LdapConnectionManagerTest extends AbstractKernelWithUserRepositoryT
 
 		DSLBeanConfigurator configurator = kernel.getInstance(DSLBeanConfigurator.class);
 		configurator.setConfigHolder(new ConfigHolder());
-		Map<String,Object> ldap = new HashMap<>();
-		Map<String,Object> connections = new HashMap<>();
-		ldap.put("connections", connections);
-		Map<String,Object> portSSL = new HashMap<>();
-		AbstractBeanConfigurator.BeanDefinition beanDefinition = new AbstractBeanConfigurator.BeanDefinition();
-		beanDefinition.setBeanName("10489");
-		beanDefinition.setActive(true);
-		beanDefinition.put("ifc", "*");
-		beanDefinition.put("socket", SocketType.ssl);
-		connections.put("10489", beanDefinition);
-		configurator.getConfigHolder().getProperties().put("ldap", ldap);
 
 		kernel.registerBean(CertificateContainer.class).exportable().exec();
-		kernel.registerBean(SSLContextContainer.class).exportable().setActive(true).exec();
 		kernel.registerBean("vhost-man").asClass(DummyVHostManager.class).exportable().setActive(true).exec();
 		kernel.registerBean(LdapConnectionManager.class).setActive(true).exec();
 		kernel.registerBean("logging").asClass(LoggingBean.class).setActive(true).setPinned(true).exec();
@@ -111,7 +96,6 @@ public class LdapConnectionManagerTest extends AbstractKernelWithUserRepositoryT
 		getInstance(DummyVHostManager.class).getVHostItem("tigase.org").setAdmins(new String[]{"admin@tigase.org"});
 
 		try {
-			final SSLContextContainer context = getInstance(SSLContextContainer.class);
 			final LoggingBean loggingBean = getInstance(LoggingBean.class);
 			loggingBean.setPacketFullDebug(true);
 			ldapManager = getInstance(LdapConnectionManager.class);
@@ -139,7 +123,7 @@ public class LdapConnectionManagerTest extends AbstractKernelWithUserRepositoryT
 		Hashtable<String, String> environment = new Hashtable<String, String>();
 
 		environment.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
-		environment.put(Context.PROVIDER_URL, "ldaps://localhost:10489");
+		environment.put(Context.PROVIDER_URL, "ldaps://localhost:10636");
 		environment.put(Context.SECURITY_AUTHENTICATION, "simple");
 		environment.put(Context.SECURITY_PRINCIPAL, "cn=tygrys,ou=Users,dc=tigase,dc=org");
 		environment.put(Context.SECURITY_CREDENTIALS, "12345");

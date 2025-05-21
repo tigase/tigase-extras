@@ -173,6 +173,11 @@ public class LdapConnectionManager extends AbstractConnectionManager<LdapIOServi
 	}
 
 	@Override
+	protected int[] getDefaultSSLPorts() {
+		return new int[]{10636};
+	}
+
+	@Override
 	protected LdapIOService<Object> getIOServiceInstance() throws IOException {
 		return new LdapIOService<>();
 	}
