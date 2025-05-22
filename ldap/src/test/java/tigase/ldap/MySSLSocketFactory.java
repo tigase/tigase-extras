@@ -1,5 +1,5 @@
 /*
- * Tigase Server Extras MongoDB - Extra modules to Tigase Server
+ * Tigase Server Extras LDAP Server - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -30,6 +30,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Implementation of SocketFactory providing socket with SSL/TLS support ignoring SSL certificate verification.
+ */
 public class MySSLSocketFactory extends SocketFactory {
 	private static final AtomicReference<MySSLSocketFactory> defaultFactory = new AtomicReference<>();
 

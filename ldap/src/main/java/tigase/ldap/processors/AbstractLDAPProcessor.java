@@ -1,5 +1,5 @@
 /*
- * Tigase Server Extras MongoDB - Extra modules to Tigase Server
+ * Tigase Server Extras LDAP Server - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,6 +29,10 @@ import tigase.vhosts.VHostManagerIfc;
 import tigase.xmpp.jid.BareJID;
 import tigase.xmpp.jid.JID;
 
+/**
+ * Class contains helper methods often used by LDAPProcessor implementations.
+ * @param <T> Class of the request that is supported
+ */
 public abstract class AbstractLDAPProcessor<T extends ProtocolOp> implements LDAPProcessor<T> {
 
 	@Inject

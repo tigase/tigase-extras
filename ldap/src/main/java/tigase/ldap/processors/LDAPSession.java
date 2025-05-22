@@ -1,5 +1,5 @@
 /*
- * Tigase Server Extras MongoDB - Extra modules to Tigase Server
+ * Tigase Server Extras LDAP Server - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,16 +19,10 @@ package tigase.ldap.processors;
 
 import tigase.xmpp.jid.BareJID;
 
+/**
+ * Interface for shared LDAP connection data, ie. authorized user
+ */
 public interface LDAPSession {
-
-//	sealed interface Authorization permits Authorization.Anonymous, Authorization.User {
-//		Authorization ANONYMOUS = new Anonymous();
-//
-//		final class Anonymous implements Authorization {}
-//		record User(BareJID jid) implements Authorization {}
-//	}
-//
-//	Authorization getAuthorization();
 
 	BareJID getAuthorizedJID();
 

@@ -1,5 +1,5 @@
 /*
- * Tigase Server Extras MongoDB - Extra modules to Tigase Server
+ * Tigase Server Extras LDAP Server - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -46,6 +46,9 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
+/**
+ * Class implements support for LDAP simple bind request used for authentication.
+ */
 @Bean(name = "bindRequest", active = true, parent = LdapConnectionManager.class)
 public class BindRequestProcessor extends AbstractLDAPProcessor<BindRequestProtocolOp> {
 

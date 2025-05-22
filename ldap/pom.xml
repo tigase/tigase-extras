@@ -8,6 +8,11 @@
         <version>2.4.0-SNAPSHOT</version>
     </parent>
 
+    <properties>
+        <guide_name>Tigase_Extras_LDAP</guide_name>
+        <documentation_phases.all_converters>generate-resources</documentation_phases.all_converters>
+    </properties>
+    
     <artifactId>tigase-extras-ldap</artifactId>
 
     <name>Tigase Server Extras LDAP Server</name>

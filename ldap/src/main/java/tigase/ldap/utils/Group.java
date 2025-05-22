@@ -1,5 +1,5 @@
 /*
- * Tigase Server Extras MongoDB - Extra modules to Tigase Server
+ * Tigase Server Extras LDAP Server - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,4 +21,9 @@ import tigase.xmpp.jid.BareJID;
 
 import java.util.function.Predicate;
 
+/**
+ * Record contains basic information about group
+ * @param name name of a group
+ * @param membershipPredicate predicate that will return true if user belongs to the group
+ */
 public record Group(String name, Predicate<BareJID> membershipPredicate) { }

@@ -1,5 +1,5 @@
 /*
- * Tigase Server Extras MongoDB - Extra modules to Tigase Server
+ * Tigase Server Extras LDAP Server - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,6 +25,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Simplified implementation of LDAP DN parser that supports only a single CN, UID, OU in a DN string.
+ * Multiple DC attributes are allowed but will be returned as a domain name.
+ */
 public class DN {
 
 	public static DN parse(String dn) throws LDAPException {
@@ -142,6 +146,10 @@ public class DN {
 		return new com.unboundid.ldap.sdk.DN(rdns.toArray(new RDN[0]));
 	}
 
+	/**
+	 * Serialize DN to a string representation
+	 * @return DN in a string
+	 */
 	public String toString() {
 		return build().toString();
 	}

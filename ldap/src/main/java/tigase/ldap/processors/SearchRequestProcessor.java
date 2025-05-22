@@ -1,5 +1,5 @@
 /*
- * Tigase Server Extras MongoDB - Extra modules to Tigase Server
+ * Tigase Server Extras LDAP Server - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -47,9 +47,9 @@ public class SearchRequestProcessor extends AbstractLDAPProcessor<SearchRequestP
 
 	private static final Logger log = Logger.getLogger(SearchRequestProcessor.class.getCanonicalName());
 
-	@ConfigField(desc = "Administrators group name")
+	@ConfigField(desc = "Administrators group name", alias = "adminsGroupName", allowAliasFromParent = true)
 	private String adminsGroupName = "Administrators";
-	@ConfigField(desc = "Users group name")
+	@ConfigField(desc = "Users group name", alias = "usersGroupName", allowAliasFromParent = true)
 	private String usersGroupName = "Users";
 
 	@Override
@@ -99,6 +99,15 @@ public class SearchRequestProcessor extends AbstractLDAPProcessor<SearchRequestP
 		}
 	}
 
+	/**
+	 * Method executes group search with passed parameters
+	 * @param domain domain to look into
+	 * @param groupName name of the group to look for
+	 * @param filter filter to look for groups
+	 * @param permissionCheck method to check if authorized user can access group data
+	 * @param consumer method to return result
+	 * @throws Exception is thrown if unrecoverable error will happen
+	 */
 	private void processGroupSearch(String domain, String groupName, Filter filter, PermissionCheck permissionCheck, Consumer<ProtocolOp> consumer) throws Exception {
 		List<Group> groups = getGroups(groupName == null ? null : group -> group.name().equals(groupName)).filter(
 				group -> FilterHelper.testGroup(domain, group, filter, permissionCheck)).toList();
@@ -108,13 +117,19 @@ public class SearchRequestProcessor extends AbstractLDAPProcessor<SearchRequestP
 		groupDN.setOU("Groups");
 		for (Group group : groups) {
 			var attrs = List.of(
-					new Attribute("cn", group.name())
+					new Attribute("cn", group.name()),
+					new Attribute("objectclass", "posixGroup")
 			);
 			consumer.accept(new SearchResultEntryProtocolOp(groupDN.setCN(group.name()).toString(), attrs));
 		}
 		consumer.accept(new SearchResultDoneProtocolOp(ResultCode.SUCCESS_INT_VALUE, null, null, null));
 	}
 
+	/**
+	 * Method returns groups returned by getAllGroups() filtered by passed predicate
+	 * @param predicate - to filter or null to skip filtering
+	 * @return Stream of groups matching predicate
+	 */
 	private Stream<Group> getGroups(Predicate<Group> predicate) {
 		Stream<Group> stream = getAllGroups().stream();
 		if (predicate != null) {
@@ -123,6 +138,14 @@ public class SearchRequestProcessor extends AbstractLDAPProcessor<SearchRequestP
 		return stream;
 	}
 
+	/**
+	 * Method searches for the user matching filter in domain and returns result
+	 * @param domain domain to look into
+	 * @param filter filter to look for users
+	 * @param permissionCheck method to check if authorized user can access found user data
+	 * @param consumer method to return result
+	 * @throws Exception is thrown if unrecoverable error will happen
+	 */
 	private void processUserSearch(String domain, Filter filter, PermissionCheck permissionCheck, Consumer<ProtocolOp> consumer) throws Exception {
 		BareJID userJid = findUser(permissionCheck, domain, filter);
 		if (userJid != null) {
@@ -155,6 +178,14 @@ public class SearchRequestProcessor extends AbstractLDAPProcessor<SearchRequestP
 		consumer.accept(new SearchResultDoneProtocolOp(ResultCode.SUCCESS_INT_VALUE, null, null, null));
 	}
 
+	/**
+	 * Method looks for the user in the filter and checks if belongs to the domain and matches filter
+	 * @param permissionCheck method to check if authorized user can access found user data
+	 * @param domain domain to look into
+	 * @param filter filter to look for users
+	 * @return user jid or null if user was not found
+	 * @throws Exception is thrown if permission check fails for data is malformed or not supported
+	 */
 	private BareJID findUser(PermissionCheck permissionCheck, String domain, Filter filter) throws Exception {
 		String userId = extractUserId(filter);
 		log.finest(() -> "found user id " + userId + " for domain " + domain + " in filter...");
@@ -183,10 +214,19 @@ public class SearchRequestProcessor extends AbstractLDAPProcessor<SearchRequestP
 		return jid;
 	}
 
+	/**
+	 * Find group from getAllGroups() that has the name matching parameter
+	 * @param name name to compare with group name
+	 * @return group with matching name
+	 */
 	private Group getGroupByName(String name) {
 		return getAllGroups().stream().filter(group -> group.name().equals(name)).findFirst().orElse(null);
 	}
 
+	/**
+	 * Returns a list of known groups
+	 * @return list of known groups
+	 */
 	private List<Group> getAllGroups() {
 		return List.of(
 				new Group(adminsGroupName, this::isAdmin),

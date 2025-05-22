@@ -1,5 +1,5 @@
 /*
- * Tigase Server Extras MongoDB - Extra modules to Tigase Server
+ * Tigase Server Extras LDAP Server - Extra modules to Tigase Server
  * Copyright (C) 2007 Tigase, Inc. (office@tigase.com)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -79,16 +79,8 @@ public class LdapIOService<RefObject> extends IOService<RefObject> implements LD
 	@Override
 	public IOService<?> call() throws IOException {
 		IOService<?> io = super.call();
-		// needed to send packets added by addPacketToSent when it was not able
-		// to acquire lock for write as when this packet would not be followed by
-		// next packet then it would stay in waitingPackets queue, however this
-		// may slow down processing packets in SocketThread thread.
-		if (isConnected() && !waitingResponses.isEmpty()) {// && writeInProgress.tryLock()) {
-//			try {
+		if (isConnected() && !waitingResponses.isEmpty()) {
 				processWaitingPackets();
-//			} finally {
-//				writeInProgress.unlock();
-//			}
 		}
 		return io;
 	}
@@ -99,20 +91,6 @@ public class LdapIOService<RefObject> extends IOService<RefObject> implements LD
 		LDAPMessage resp;
 		while ((resp = waitingResponses.poll()) != null) {
 			writeMessage(resp);
-//			if (resp instanceof BindResult) {
-//				BindResult bindResult = (BindResult) resp;
-//				BindResponseProtocolOp protocolOp = new BindResponseProtocolOp(bindResult);
-//				LDAPMessage message = new LDAPMessage(respCounter.incrementAndGet(), protocolOp);
-//				writeMessage(message);
-//			} else if (resp instanceof SearchResultEntry) {
-//				int x = respCounter.incrementAndGet();
-//				writeMessage(new LDAPMessage(x, new SearchResultEntryProtocolOp((SearchResultEntry) resp)));
-//				writeMessage(new LDAPMessage(x, new SearchResultDoneProtocolOp(ResultCode.SUCCESS_INT_VALUE, null, null, null)));
-//			} else if (resp instanceof SearchResult) {
-//				writeMessage(new LDAPMessage(respCounter.incrementAndGet(), new SearchResultDoneProtocolOp((LDAPResult) resp)));
-//			} else if (resp instanceof LDAPResult) {
-//				writeMessage(new LDAPMessage(respCounter.incrementAndGet(), new ExtendedResponseProtocolOp((LDAPResult) resp)));
-//			}
 		}
 	}
 	
@@ -161,22 +139,6 @@ public class LdapIOService<RefObject> extends IOService<RefObject> implements LD
 					log.finest(() -> "received message " + message);
 					if (message != null) {
 						receivedRequests.add(message);
-
-//					ProtocolOp protocolOp = message.getProtocolOp();
-//					if (protocolOp instanceof BindRequestProtocolOp) {
-//						BindRequestProtocolOp bindRequestOp = (BindRequestProtocolOp) protocolOp;
-//						log.finest(() -> "bind request op: " + bindRequestOp.getBindDN() + ", SASL = " +
-//								bindRequestOp.getSASLMechanism() + ", " + bindRequestOp.getSimplePassword() + ", " +
-//								bindRequestOp.getSASLCredentials());
-//						BindRequest bindRequest = bindRequestOp.toBindRequest();
-//						receivedRequests.add(bindRequest);
-//					} else if (protocolOp instanceof SearchRequestProtocolOp) {
-//						SearchRequestProtocolOp searchRequestOp = (SearchRequestProtocolOp) protocolOp;
-//						log.finest(() -> "search request op: " + searchRequestOp.getBaseDN() + ", " + searchRequestOp.getFilter());
-//						receivedRequests.add(searchRequestOp.toSearchRequest());
-//					} else {
-//						sendResponse(new LDAPResult(message.getMessageID(), ResultCode.NOT_SUPPORTED));
-//					}
 					}
 					log.finest(() -> "reading data from reader completed.");
 				}
