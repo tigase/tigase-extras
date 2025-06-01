@@ -19,7 +19,9 @@ package tigase.ldap.utils;
 
 import com.unboundid.ldap.sdk.Filter;
 import com.unboundid.ldap.sdk.LDAPException;
+import com.unboundid.ldap.sdk.ResultCode;
 import tigase.db.AuthRepository;
+import tigase.db.TigaseDBException;
 import tigase.util.stringprep.TigaseStringprepException;
 import tigase.xmpp.jid.BareJID;
 
@@ -64,48 +66,53 @@ public class FilterHelper {
 		};
 	}
 
-	public static boolean testUser(BareJID jid, Filter filter, AuthRepository authRepository, Predicate<String> testGroupMembership) throws Exception {
-		var result = switch (filter.getFilterType()) {
-			case Filter.FILTER_TYPE_EQUALITY -> switch (filter.getAttributeName().toLowerCase()) {
-				case "uid", "cn" -> Objects.equals(jid.getLocalpart(), filter.getAssertionValue());
-				case "mail" -> Objects.equals(jid.toString(), filter.getAssertionValue());
-				case "xmpp" -> Objects.equals(jid.toString(), filter.getAssertionValue());
-				case "memberof" -> {
-					DN groupDN = DN.parse(filter.getAssertionValue());
-					if (!Objects.equals(groupDN.getDomain(), jid.getDomain())) {
-						yield false;
+	public static boolean testUser(BareJID jid, Filter filter, AuthRepository authRepository, Predicate<String> testGroupMembership) throws LDAPException {
+		try {
+			var result = switch (filter.getFilterType()) {
+				case Filter.FILTER_TYPE_EQUALITY -> switch (filter.getAttributeName().toLowerCase()) {
+					case "uid", "cn" -> Objects.equals(jid.getLocalpart(), filter.getAssertionValue());
+					case "mail" -> Objects.equals(jid.toString(), filter.getAssertionValue());
+					case "xmpp" -> Objects.equals(jid.toString(), filter.getAssertionValue());
+					case "memberof" -> {
+						DN groupDN = DN.parse(filter.getAssertionValue());
+						if (!Objects.equals(groupDN.getDomain(), jid.getDomain())) {
+							yield false;
+						}
+						yield testGroupMembership.test(groupDN.getCn());
 					}
-					yield testGroupMembership.test(groupDN.getCn());
+					case "memberofgid" -> testGroupMembership.test(filter.getAssertionValue());
+					case "objectclass" -> "posixAccount".equals(filter.getAssertionValue());
+					case "accountstatus" ->
+							Objects.equals(authRepository.getAccountStatus(jid).name(), filter.getAssertionValue());
+					default -> false;
+				};
+				case Filter.FILTER_TYPE_PRESENCE -> switch (filter.getAttributeName().toLowerCase()) {
+					case "uid", "cn", "mail", "xmpp", "memberof", "memberofgid", "objectclass", "accountstatus" -> true;
+					default -> false;
+				};
+				case Filter.FILTER_TYPE_AND -> {
+					for (Filter child : filter.getComponents()) {
+						if (!testUser(jid, child, authRepository, testGroupMembership)) {
+							yield false;
+						}
+					}
+					yield true;
 				}
-				case "memberofgid" -> testGroupMembership.test(filter.getAssertionValue());
-				case "objectclass" -> "posixAccount".equals(filter.getAssertionValue());
-				case "accountstatus" -> Objects.equals(authRepository.getAccountStatus(jid).name(), filter.getAssertionValue());
+				case Filter.FILTER_TYPE_OR -> {
+					for (Filter child : filter.getComponents()) {
+						if (testUser(jid, child, authRepository, testGroupMembership)) {
+							yield true;
+						}
+					}
+					yield false;
+				}
 				default -> false;
 			};
-			case Filter.FILTER_TYPE_PRESENCE -> switch (filter.getAttributeName().toLowerCase()) {
-				case "uid", "cn", "mail", "xmpp", "memberof", "memberofgid", "objectclass", "accountstatus" -> true;
-				default -> false;
-			};
-			case Filter.FILTER_TYPE_AND -> {
-				for (Filter child : filter.getComponents()) {
-					if (!testUser(jid, child, authRepository, testGroupMembership)) {
-						yield  false;
-					}
-				}
-				yield true;
-			}
-			case Filter.FILTER_TYPE_OR -> {
-				for (Filter child : filter.getComponents()) {
-					if (testUser(jid, child, authRepository, testGroupMembership)) {
-						yield true;
-					}
-				}
-				yield false;
-			}
-			default -> false;
-		};
-		log.finest(() -> "testing user " + jid + " using filter " + filter + " with result " + result);
-		return result;
+			log.finest(() -> "testing user " + jid + " using filter " + filter + " with result " + result);
+			return result;
+		} catch (TigaseDBException ex) {
+			throw new LDAPException(ResultCode.BUSY, ex);
+		}
 	}
 	
 	public static boolean testGroup(String domain, Group group, Filter filter, PermissionCheck permissionCheck) {

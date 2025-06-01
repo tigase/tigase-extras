@@ -25,6 +25,7 @@ import com.unboundid.ldap.sdk.Attribute;
 import com.unboundid.ldap.sdk.Filter;
 import com.unboundid.ldap.sdk.LDAPException;
 import com.unboundid.ldap.sdk.ResultCode;
+import tigase.db.TigaseDBException;
 import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.ldap.LdapConnectionManager;
@@ -32,6 +33,7 @@ import tigase.ldap.utils.DN;
 import tigase.ldap.utils.FilterHelper;
 import tigase.ldap.utils.Group;
 import tigase.ldap.utils.PermissionCheck;
+import tigase.util.stringprep.TigaseStringprepException;
 import tigase.xmpp.jid.BareJID;
 
 import java.util.List;
@@ -106,9 +108,9 @@ public class SearchRequestProcessor extends AbstractLDAPProcessor<SearchRequestP
 	 * @param filter filter to look for groups
 	 * @param permissionCheck method to check if authorized user can access group data
 	 * @param consumer method to return result
-	 * @throws Exception is thrown if unrecoverable error will happen
+	 * @throws LDAPException is thrown if unrecoverable error will happen
 	 */
-	private void processGroupSearch(String domain, String groupName, Filter filter, PermissionCheck permissionCheck, Consumer<ProtocolOp> consumer) throws Exception {
+	private void processGroupSearch(String domain, String groupName, Filter filter, PermissionCheck permissionCheck, Consumer<ProtocolOp> consumer) throws LDAPException {
 		List<Group> groups = getGroups(groupName == null ? null : group -> group.name().equals(groupName)).filter(
 				group -> FilterHelper.testGroup(domain, group, filter, permissionCheck)).toList();
 
@@ -144,38 +146,43 @@ public class SearchRequestProcessor extends AbstractLDAPProcessor<SearchRequestP
 	 * @param filter filter to look for users
 	 * @param permissionCheck method to check if authorized user can access found user data
 	 * @param consumer method to return result
-	 * @throws Exception is thrown if unrecoverable error will happen
+	 * @throws LDAPException is thrown if unrecoverable error will happen
 	 */
-	private void processUserSearch(String domain, Filter filter, PermissionCheck permissionCheck, Consumer<ProtocolOp> consumer) throws Exception {
-		BareJID userJid = findUser(permissionCheck, domain, filter);
-		if (userJid != null) {
-			var userGroupNames = getAllGroups().stream()
-					.filter(group -> group.membershipPredicate().test(userJid))
-					.map(Group::name)
-					.toList();
+	private void processUserSearch(String domain, Filter filter, PermissionCheck permissionCheck, Consumer<ProtocolOp> consumer) throws LDAPException {
+		try {
+			BareJID userJid = findUser(permissionCheck, domain, filter);
+			if (userJid != null) {
+				var userGroupNames = getAllGroups().stream()
+						.filter(group -> group.membershipPredicate().test(userJid))
+						.map(Group::name)
+						.toList();
 
-			DN domainDN = new DN();
-			domainDN.setDomain(domain);
+				DN domainDN = new DN();
+				domainDN.setDomain(domain);
 
-			String userDN = domainDN.copy().setOU("Users").setCN(userJid.getLocalpart()).toString();
-			DN groupDN = domainDN.copy().setOU("Groups");
+				String userDN = domainDN.copy().setOU("Users").setCN(userJid.getLocalpart()).toString();
+				DN groupDN = domainDN.copy().setOU("Groups");
 
-			var attrs = List.of(
-					new Attribute("uid", userJid.getLocalpart()),
-					new Attribute("cn", userJid.getLocalpart()),
-					new Attribute("objectClass", "posixAccount"),
-					new Attribute("mail", userJid.toString()),
-					new Attribute("xmpp", userJid.toString()),
-					new Attribute("memberOfGid", userGroupNames),
-					new Attribute("memberOf", userGroupNames.stream()
-							.map(cn -> groupDN.setCN(cn).toString())
-							.toList()),
-					new Attribute("accountStatus", getAuthRepository().getAccountStatus(userJid).name())
-			);
+				var attrs = List.of(new Attribute("uid", userJid.getLocalpart()),
+									new Attribute("cn", userJid.getLocalpart()),
+									new Attribute("objectClass", "posixAccount"),
+									new Attribute("mail", userJid.toString()),
+									new Attribute("xmpp", userJid.toString()),
+									new Attribute("memberOfGid", userGroupNames), new Attribute("memberOf",
+																								userGroupNames.stream()
+																										.map(cn -> groupDN.setCN(
+																														cn)
+																												.toString())
+																										.toList()),
+									new Attribute("accountStatus",
+												  getAuthRepository().getAccountStatus(userJid).name()));
 
-			consumer.accept(new SearchResultEntryProtocolOp(userDN, attrs));
+				consumer.accept(new SearchResultEntryProtocolOp(userDN, attrs));
+			}
+			consumer.accept(new SearchResultDoneProtocolOp(ResultCode.SUCCESS_INT_VALUE, null, null, null));
+		} catch (TigaseDBException ex) {
+			throw new LDAPException(ResultCode.BUSY, ex);
 		}
-		consumer.accept(new SearchResultDoneProtocolOp(ResultCode.SUCCESS_INT_VALUE, null, null, null));
 	}
 
 	/**
@@ -184,34 +191,41 @@ public class SearchRequestProcessor extends AbstractLDAPProcessor<SearchRequestP
 	 * @param domain domain to look into
 	 * @param filter filter to look for users
 	 * @return user jid or null if user was not found
-	 * @throws Exception is thrown if permission check fails for data is malformed or not supported
+	 * @throws LDAPException is thrown if permission check fails for data is malformed or not supported
 	 */
-	private BareJID findUser(PermissionCheck permissionCheck, String domain, Filter filter) throws Exception {
+	private BareJID findUser(PermissionCheck permissionCheck, String domain, Filter filter) throws LDAPException {
 		String userId = extractUserId(filter);
 		log.finest(() -> "found user id " + userId + " for domain " + domain + " in filter...");
 		if (userId == null) {
 			return null;
 		}
 
-		// we are assuming that either user id is passed (localpart) or the whole bare JID
-		BareJID jid = userId.endsWith("@" + domain) ? BareJID.bareJIDInstance(userId) : BareJID.bareJIDInstance(userId, domain);
-		permissionCheck.checkPermissionToAccess(jid);
+		try {
+			// we are assuming that either user id is passed (localpart) or the whole bare JID
+			BareJID jid = userId.endsWith("@" + domain)
+						  ? BareJID.bareJIDInstance(userId)
+						  : BareJID.bareJIDInstance(userId, domain);
+			permissionCheck.checkPermissionToAccess(jid);
 
-		if (!getUserRepository().userExists(jid)) {
-			log.finest(() -> "user " + jid + " not found in the user repository!");
-			return null;
-		}
-		if (!FilterHelper.testUser(jid, filter, getAuthRepository(), groupName -> {
-			Group group = getGroupByName(groupName);
-			if (group == null) {
-				return false;
+			if (!getUserRepository().userExists(jid)) {
+				log.finest(() -> "user " + jid + " not found in the user repository!");
+				return null;
 			}
-			return group.membershipPredicate().test(jid);
-		})) {
-			log.finest(() -> "user " + jid + " do not match passed filter " + FilterHelper.printFilterTree(filter)) ;
+			if (!FilterHelper.testUser(jid, filter, getAuthRepository(), groupName -> {
+				Group group = getGroupByName(groupName);
+				if (group == null) {
+					return false;
+				}
+				return group.membershipPredicate().test(jid);
+			})) {
+				log.finest(() -> "user " + jid + " do not match passed filter " + FilterHelper.printFilterTree(filter));
+				return null;
+			}
+			return jid;
+		} catch (TigaseStringprepException ex) {
+			// most likely incorrect localpart, we should assume processing has failed
 			return null;
 		}
-		return jid;
 	}
 
 	/**
