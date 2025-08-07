@@ -35,8 +35,8 @@ import tigase.xmpp.XMPPProcessorException;
 import tigase.xmpp.impl.JabberIqRegister;
 import tigase.xmpp.jid.BareJID;
 
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;

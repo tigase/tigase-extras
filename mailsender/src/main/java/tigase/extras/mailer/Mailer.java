@@ -17,20 +17,20 @@
  */
 package tigase.extras.mailer;
 
-import com.sun.mail.smtp.SMTPAddressFailedException;
+import org.eclipse.angus.mail.smtp.SMTPAddressFailedException;
 import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.kernel.beans.config.ConfigFieldType;
 import tigase.util.StringUtilities;
 
-import javax.mail.Message;
-import javax.mail.SendFailedException;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.Message;
+import jakarta.mail.SendFailedException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
